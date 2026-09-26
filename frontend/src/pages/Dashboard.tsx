@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 
@@ -45,7 +45,7 @@ function Dashboard() {
       navigate("/login");
       return;
     }
-    
+
     // Quick hack for demo: we know shop-1 owns shops. In a real app, we'd query /api/my-shop
     fetch("/api/shops/1").then(res => res.json()).then(data => setShop(data));
 
