@@ -167,21 +167,83 @@ erDiagram
   - All 49 automated backend tests passing (24 Milestone 1 tests + 25 Milestone 2 tests).
 - [x] Verified full backward compatibility with the frontend; zero build or runtime regressions.
 
-### Milestone 3: Build Shop Product & Inventory Management and Customer Storefront
-- Implement product catalog CRUD for shop owners (stationery items, categories, pricing, stock levels).
-- Build customer storefront with category filtering, product search, and responsive single-shop cart.
-- Support unified orders containing both printing jobs and stationery products with server-side stock validation and reservation.
+### Milestone 3: Build Shop Product & Inventory Management and Customer Storefront [COMPLETED]
+- [x] Implemented Shop-Specific Product Catalog & Category Management:
+  - Database schema models for `categories` and `products` scoped to `shop_id`.
+  - Public endpoints: `GET /api/shops/:shopId/categories`, `GET /api/shops/:shopId/products?availableOnly=true`.
+  - Staff/Owner endpoints: `POST /api/shops/:shopId/products`, `PUT /api/shops/:shopId/products/:id`, `POST /api/shops/:shopId/categories`.
+  - Owner-only endpoint: `DELETE /api/shops/:shopId/products/:id`.
+  - Enforced tenant isolation and verified shop membership using authenticated JWT identity.
+- [x] Implemented Server-Side Inventory & Stock Engine:
+  - Atomic stock validation preventing overselling and negative inventory (`stock_quantity >= ?`).
+  - Strict server-side recalculation of product unit prices and subtotals (ignoring client-submitted unit prices).
+  - Transactional rollback on stock exhaustion or validation failure during multi-item checkout.
+  - Automated inventory restoration when an order is cancelled or rejected.
+- [x] Responsive Single-Shop Customer Shopping Cart:
+  - Client cart state manager (`cart.ts`) supporting stationery products and printing services.
+  - Sliding Cart Drawer (`CartDrawer.tsx`) with quantity adjustments, removal, subtotal/tax breakdowns, and empty state.
+  - Strict single-shop boundary enforcement: cross-shop additions prompt the customer with clear notice before clearing.
+  - Real-time cart item count badge integrated into `Navbar.tsx`.
+- [x] Unified Checkout & Order Processing:
+  - Unified order handler supporting stationery-only, printing-only, and mixed orders.
+  - Server validation verifying all products belong strictly to the target shop (cross-shop cart defense).
+  - Cryptographically secure order ID (`LP-XXXXXX`) and single-use pickup verification token.
+  - Cart automatically cleared upon successful order confirmation.
+- [x] Frontend Customer Storefront & Shopkeeper Portal:
+  - Customer Storefront (`ShopDetails.tsx`): category navigation pills, dynamic product cards, live stock badges (in stock, low stock warning, out of stock), and quick "Add to Cart" / quantity selectors.
+  - Shopkeeper Portal (`Dashboard.tsx`): tabbed view for Orders & Pickups (with stationery and print breakdowns) and Products & Inventory (overview metrics, low-stock alerts, add/edit product modals, and category creation).
+  - Updated `BookingSuccess.tsx`, `Bookings.tsx`, and `Print.tsx` for seamless unified order support.
+- [x] Automated Test Suite:
+  - Built `backend/tests/inventory_cart.test.ts` (15 tests covering authorization, negative price/stock rejection, atomic deduction, rollback on stock exhaustion, price tamper resistance, cross-shop defense, and cancellation stock restoration).
+  - All 64 tests passing platform-wide (24 M1 tests + 25 M2 tests + 15 M3 tests). Zero build errors on frontend or backend.
 
 ### Milestone 4: Order Lifecycle, Atomic Pickup Verification & In-App Notifications
-- Complete full status transition state machine (`Pending` -> `Accepted` -> `Preparing` -> `Ready for Pickup` -> `Completed`).
-- Implement cryptographically secure pickup token generation and QR code.
-- Implement shopkeeper pickup verification scanner/input with atomic single-use completion.
-- Implement real-time / polling in-app notification center for customers and shopkeepers.
-- Implement order cancellation with automated inventory restoration.
+- [x] Completed full status transition state machine:
+  - Allowed progression: `Pending` -> `Accepted` -> `Preparing` -> `Ready for Pickup` -> `Completed`.
+  - Cancellation supported from non-terminal states (`Pending`, `Accepted`, `Preparing`, `Ready`).
+  - Terminal states (`Completed`, `Cancelled`, `Rejected`) strictly enforced: transitions from terminal states throw errors and prevent race conditions.
+  - Immediate write transactions (`BEGIN IMMEDIATE;`) guarantee atomic stock deduction and restoration exactly once.
+- [x] In-App Notifications System:
+  - SQLite database migration `003_notifications` adding `notifications` table with user, shop, and order indexes.
+  - Auto-notification dispatches on: order creation (`ORDER_PLACED` to customer and shop staff), acceptance (`ORDER_ACCEPTED`), preparation (`ORDER_PREPARING`), ready for pickup (`ORDER_READY`), and counter handover (`ORDER_COMPLETED`).
+  - Notification endpoints: `GET /api/notifications` (feed), `GET /api/notifications/unread-count` (badge counter), `PATCH /api/notifications/:id/read` (mark single read), `POST /api/notifications/mark-all-read` (bulk read).
+  - Frontend `NotificationBell` component in Navbar with real-time polling (8s), unread count pill badge, type-specific badges, relative timestamps, and one-click mark as read.
+- [x] Order Lifecycle Tracking & Visual Timeline:
+  - `GET /api/orders/:id/timeline` API endpoint returning chronological status transitions, changed-by identities, notes, and timestamps.
+  - Frontend `OrderTimelineModal` component with visual step progression bar (`Pending` -> `Accepted` -> `Preparing` -> `Ready` -> `Completed`) and chronological audit trail.
+  - Customer Bookings page (`Bookings.tsx`) enhanced with prominent pickup verification code card, status stepper timeline modal, and customer self-cancellation button.
+  - Shopkeeper Dashboard (`Dashboard.tsx`) enhanced with granular action buttons (`Accept Order`, `Start Preparing`, `Mark Ready`, `Verify & Hand Over`, `Reject / Cancel`) and timeline modal.
+- [x] Automated Testing Suite:
+  - Created `backend/tests/notifications_lifecycle.test.ts` (14 tests covering notification creation, multi-tenant isolation, unread counter operations, single/bulk mark as read, timeline authorization, and lifecycle progression).
+  - All 85 tests passing across 22 test suites platform-wide. Clean TypeScript compilation on both backend and frontend.
 
-### Milestone 5: SaaS Administration & Subscriptions
-- Build Platform Admin dashboard to view tenant shops, approve/suspend shops, and view platform metrics.
-- Implement subscription plan configuration (Free Trial, Starter, Pro) and status enforcement.
+### Milestone 5: SaaS Administration, Subscriptions & Resource Quota Enforcement
+- [x] Non-Destructive Database Migration `004_subscriptions_admin_audit`:
+  - Created tables: `subscription_plans`, `shop_subscriptions`, `subscription_history`, `admin_audit_logs`.
+  - Configurable plan tiers seeded: `plan_trial`, `plan_starter`, `plan_pro`, `plan_enterprise` with explicit staff ceilings, product catalogue limits, and feature definitions.
+  - Automatic migration ingest preserving existing shops without data loss.
+- [x] Central Backend Entitlement & Quota Enforcement Engine:
+  - Centralized entitlements in `repository.getShopEntitlements(shopId)`: live calculation of staff quotas, product counts, and order acceptance gating.
+  - Staff limits enforced on `POST /api/shops/:shopId/staff` (owner excluded from quota).
+  - Product limits enforced on `POST /api/shops/:shopId/products`.
+  - Order acceptance gated on `POST /api/orders`: suspended and expired shops reject new checkout requests (`403 Forbidden`).
+  - Sensible expiration/suspension policy: historical order data, receipts, and products are never destroyed; staff and customers can view and fulfill past orders.
+  - Shop owners cannot self-elevate or bypass plan limits (all administrative plan changes require `ADMIN` role).
+- [x] Platform Administration Portal (`/admin`):
+  - Overview KPI cards: Total Shops, Active Shops, Trial Shops, Expired Subscriptions, Suspended Shops, Total Customers, Total Orders, Order Revenue.
+  - Shops & Subscriptions directory with search, status filters, and shop performance metrics.
+  - Subscription management modal: assign plans, extend trials, suspend/reactivate shops.
+  - Subscription Plan Ceiling management: create new custom plans and edit existing plan quotas.
+  - Administrative Audit Logs (`admin_audit_logs`): server-side immutable logging of all administrative actions with actor identity, target, timestamp, and details (strictly excluding passwords and tokens).
+- [x] Shop Owner Subscription & Billing Page (`/dashboard` Tab 3):
+  - Active tier card with monthly rate, status badge, trial expiration countdown, or renewal cycle dates.
+  - Live resource usage meters with color-coded progress bars for staff seats and product catalogue items.
+  - Plan comparison cards with feature breakdowns and "Request Plan Change" workflow cleanly recording requests for administrator review.
+  - Subscription Change History table showing past tier and status transitions, reasons, timestamps, and authorized actors.
+- [x] Automated Testing Suite:
+  - Created `backend/tests/subscriptions_admin.test.ts` (25 tests covering admin RBAC, plan limits, staff limits, product limits, order gating, audit logs, subscription history, state transitions, and cross-shop isolation).
+  - Full platform test suite: 110 tests passing across 31 test suites (0 failures).
+  - Clean production builds for both backend (`tsc`) and frontend (`vite build`).
 
 ### Milestone 6: Production Hardening, Quality Assurance & Deployment
 - Full test suite execution (unit, integration, and security checks).

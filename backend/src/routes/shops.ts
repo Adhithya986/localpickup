@@ -103,4 +103,113 @@ router.put("/:id", authenticateToken, async (req: Request, res: Response): Promi
   }
 });
 
+// GET /api/shops/:id/subscription - Shop Owner views subscription & usage entitlements
+router.get("/:id/subscription", authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const shopId = getParam(req.params.id);
+    const shop = repository.getShopById(shopId);
+
+    if (!shop) {
+      res.status(404).json({ error: "Shop not found" });
+      return;
+    }
+
+    const isMemberOrAdmin =
+      isPlatformAdmin(user.role) ||
+      shop.owner_id === user.id ||
+      repository.isShopMember(shop.id, user.id);
+
+    if (!isMemberOrAdmin) {
+      res.status(403).json({ error: "Forbidden: You are not authorized to view subscription for this shop" });
+      return;
+    }
+
+    const entitlements = repository.getShopEntitlements(shop.id);
+    const history = repository.getSubscriptionHistory(shop.id);
+    const availablePlans = repository.getAllSubscriptionPlans();
+
+    res.json({
+      subscription: entitlements.sub,
+      plan: entitlements.plan,
+      entitlements,
+      usage: {
+        staffCount: entitlements.currentStaffCount,
+        maxStaff: entitlements.maxStaff,
+        canAddStaff: entitlements.canAddStaff,
+        productCount: entitlements.currentProductCount,
+        maxProducts: entitlements.maxProducts,
+        canAddProduct: entitlements.canAddProduct,
+      },
+      status: entitlements.status,
+      canAcceptOrders: entitlements.canAcceptOrders,
+      isSuspended: entitlements.isSuspended,
+      isExpired: entitlements.isExpired,
+      isPastDue: entitlements.isPastDue,
+      availablePlans,
+      plans: availablePlans,
+      history,
+    });
+  } catch (error) {
+    console.error("Fetch shop subscription error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /api/shops/:id/subscription/request-change - Shop Owner requests plan upgrade / change
+router.post("/:id/subscription/request-change", authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const shopId = getParam(req.params.id);
+    const shop = repository.getShopById(shopId);
+
+    if (!shop) {
+      res.status(404).json({ error: "Shop not found" });
+      return;
+    }
+
+    const isOwnerOrAdmin =
+      isPlatformAdmin(user.role) ||
+      shop.owner_id === user.id ||
+      repository.isShopMember(shop.id, user.id, "OWNER");
+
+    if (!isOwnerOrAdmin) {
+      res.status(403).json({ error: "Forbidden: Only the shop owner can request subscription changes" });
+      return;
+    }
+
+    const { requestedPlanId } = req.body;
+    if (!requestedPlanId || typeof requestedPlanId !== "string") {
+      res.status(400).json({ error: "Valid target plan ID is required" });
+      return;
+    }
+
+    const targetPlan = repository.getSubscriptionPlanById(requestedPlanId);
+    if (!targetPlan) {
+      res.status(404).json({ error: "Requested subscription plan was not found" });
+      return;
+    }
+
+    const updatedSub = repository.requestPlanChange(shop.id, targetPlan.id);
+
+    // Send notification to shop owner
+    repository.createNotification({
+      userId: user.id,
+      shopId: shop.id,
+      type: "PLAN_REQUEST_SUBMITTED",
+      title: "Plan Upgrade Request Submitted",
+      message: `Your request to switch to the '${targetPlan.name}' plan (₹${targetPlan.monthly_price}/mo) has been recorded and submitted for administrator approval.`,
+    });
+
+    res.json({
+      success: true,
+      message: `Upgrade request to '${targetPlan.name}' submitted successfully. A platform administrator will review and activate your plan.`,
+      subscription: updatedSub,
+    });
+  } catch (error: any) {
+    console.error("Request plan change error:", error);
+    res.status(500).json({ error: error.message || "Internal Server Error" });
+  }
+});
+
 export default router;

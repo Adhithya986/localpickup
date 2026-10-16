@@ -9,6 +9,7 @@ import shopsRoutes from "./routes/shops";
 import staffRoutes from "./routes/staff";
 import productsRoutes from "./routes/products";
 import adminRoutes from "./routes/admin";
+import notificationsRoutes from "./routes/notifications";
 import { errorHandler } from "./middleware/errorHandler";
 import { generalApiLimiter } from "./middleware/rateLimiter";
 import { authenticateToken } from "./middleware/auth";
@@ -57,9 +58,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/shops", shopsRoutes);
-app.use("/api/shops", staffRoutes);
 app.use("/api/shops", productsRoutes);
+app.use("/api/shops", staffRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/notifications", notificationsRoutes);
 
 // Protected legacy upload path interceptor: NEVER expose files publicly without auth!
 app.get("/uploads/:filename", authenticateToken, (req, res) => {

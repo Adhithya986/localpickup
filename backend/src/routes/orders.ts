@@ -32,15 +32,15 @@ function formatClientOrder(order: DBOrder) {
     shopName: order.shop_name || "Print Shop",
     customerId: order.customer_id || undefined,
     customerEmail: order.customer_email || undefined,
-    fileName: pj?.original_file_name || "document.pdf",
+    fileName: pj?.original_file_name || (pj ? "document.pdf" : undefined),
     storageKey: pj?.storage_key || "",
-    filePath: pj?.file_path || `/api/documents/${order.id}`,
-    fileMime: pj?.file_mime || "application/pdf",
+    filePath: pj?.file_path || (pj ? `/api/documents/${order.id}` : undefined),
+    fileMime: pj?.file_mime || (pj ? "application/pdf" : undefined),
     fileSizeBytes: pj?.file_size_bytes || 0,
-    paper: pj?.paper_size || "A4",
-    colour: pj?.color_mode || "bw",
-    sides: pj?.sides || "single",
-    copies: pj?.copies || 1,
+    paper: pj?.paper_size || undefined,
+    colour: pj?.color_mode || undefined,
+    sides: pj?.sides || undefined,
+    copies: pj?.copies || (pj ? 1 : 0),
     binding: (pj?.binding || 0) === 1,
     lamination: (pj?.lamination || 0) === 1,
     total: order.total_amount,
@@ -52,6 +52,15 @@ function formatClientOrder(order: DBOrder) {
     updatedAt: order.updated_at,
     verifiedBy: order.verified_by_user_id || undefined,
     verifiedAt: order.verified_at || undefined,
+    items: order.items?.map((it) => ({
+      id: it.id,
+      productId: it.product_id,
+      itemType: it.item_type,
+      title: it.title,
+      quantity: it.quantity,
+      unitPrice: it.unit_price,
+      subtotal: it.subtotal,
+    })) || [],
     statusHistory: order.history?.map((h) => ({
       status: h.to_status,
       changedAt: h.created_at,
@@ -61,7 +70,7 @@ function formatClientOrder(order: DBOrder) {
   };
 }
 
-// POST /api/orders - Create an order
+// POST /api/orders - Create an order (Print, Stationery, or Unified Cart)
 router.post(
   "/",
   orderRateLimiter,
@@ -69,11 +78,6 @@ router.post(
   documentUpload.single("file"),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.file) {
-        res.status(400).json({ error: "Document file is required for printing" });
-        return;
-      }
-
       const { shopId, pickupTime } = req.body;
 
       if (!shopId || typeof shopId !== "string") {
@@ -92,63 +96,169 @@ router.post(
         return;
       }
 
-      if (shop.subscription_status === "SUSPENDED") {
-        res.status(403).json({ error: "This shop is temporarily unable to accept new orders." });
+      const entitlements = repository.getShopEntitlements(shopId);
+      if (!entitlements.canAcceptOrders) {
+        const errorReason = entitlements.isSuspended
+          ? "Shop subscription is suspended and cannot accept orders."
+          : entitlements.isExpired
+          ? "Shop subscription has expired and cannot accept new orders."
+          : "This shop is temporarily unable to accept new orders.";
+        res.status(403).json({ error: errorReason });
         return;
       }
 
-      // Validate print configuration options
-      const validation = validatePrintOptions(req.body);
-      if (!validation.isValid || !validation.validatedOptions) {
-        res.status(400).json({ error: validation.error || "Invalid print options" });
+      // Parse stationery items if provided
+      let rawItems = req.body.items;
+      if (typeof rawItems === "string") {
+        try {
+          rawItems = JSON.parse(rawItems);
+        } catch {
+          res.status(400).json({ error: "Invalid items JSON payload format" });
+          return;
+        }
+      }
+
+      const hasPrintDocument = Boolean(req.file);
+      const hasStationeryItems = Array.isArray(rawItems) && rawItems.length > 0;
+
+      if (!hasPrintDocument && !hasStationeryItems) {
+        res.status(400).json({ error: "Order must contain at least one stationery item or a document to print." });
         return;
       }
 
-      // Parse pricing config if present
-      const shopPricing = shop.pricing_config_json ? JSON.parse(shop.pricing_config_json) : undefined;
-      const pricing = calculatePrintPrice(validation.validatedOptions, {
-        id: shop.id,
-        name: shop.name,
-        description: shop.description || "",
-        distance: shop.distance || "",
-        price: shop.price_starting || "",
-        rating: shop.rating.toString(),
-        pricingConfig: shopPricing,
-      });
+      // Validate stationery items
+      const validatedItems: Array<{
+        productId: string;
+        title: string;
+        quantity: number;
+        unitPrice: number;
+        subtotal: number;
+      }> = [];
 
-      // Generate cryptographically secure, unpredictable order ID and pickup token
+      if (hasStationeryItems) {
+        for (const item of rawItems) {
+          if (!item || !item.productId || typeof item.productId !== "string") {
+            res.status(400).json({ error: "Each cart item must specify a valid productId" });
+            return;
+          }
+
+          const q = parseInt(item.quantity, 10);
+          if (isNaN(q) || q <= 0) {
+            res.status(400).json({ error: `Invalid quantity for product ${item.productId}. Must be a positive integer.` });
+            return;
+          }
+
+          const product = repository.getProductById(item.productId);
+          if (!product) {
+            res.status(404).json({ error: `Product '${item.productId}' was not found.` });
+            return;
+          }
+
+          // Strict Cross-Shop Cart Defense
+          if (product.shop_id !== shop.id) {
+            res.status(400).json({
+              error: `Cross-shop cart error: Product '${product.name}' belongs to a different shop. All items must belong to '${shop.name}'.`,
+            });
+            return;
+          }
+
+          // Availability check
+          if (!product.is_available) {
+            res.status(400).json({ error: `Product '${product.name}' is currently unavailable.` });
+            return;
+          }
+
+          // Stock validation
+          if (product.stock_quantity < q) {
+            res.status(400).json({
+              error: `Insufficient stock for '${product.name}'. Available: ${product.stock_quantity}, requested: ${q}.`,
+            });
+            return;
+          }
+
+          // Strict server-side price calculation
+          validatedItems.push({
+            productId: product.id,
+            title: product.name,
+            quantity: q,
+            unitPrice: product.price,
+            subtotal: product.price * q,
+          });
+        }
+      }
+
+      // Validate and compute print pricing if document uploaded
+      let printJobDetails: any = undefined;
+      let calculatedPrintPrice = 0;
+
+      if (hasPrintDocument) {
+        const validation = validatePrintOptions(req.body);
+        if (!validation.isValid || !validation.validatedOptions) {
+          res.status(400).json({ error: validation.error || "Invalid print options" });
+          return;
+        }
+
+        const shopPricing = shop.pricing_config_json ? JSON.parse(shop.pricing_config_json) : undefined;
+        const pricing = calculatePrintPrice(validation.validatedOptions, {
+          id: shop.id,
+          name: shop.name,
+          description: shop.description || "",
+          distance: shop.distance || "",
+          price: shop.price_starting || "",
+          rating: shop.rating.toString(),
+          pricingConfig: shopPricing,
+        });
+
+        calculatedPrintPrice = pricing.total;
+        printJobDetails = {
+          fileName: req.file!.originalname,
+          storageKey: req.file!.filename,
+          filePath: `/api/documents/PENDING`, // will be set with orderId
+          fileMime: req.file!.mimetype,
+          fileSizeBytes: req.file!.size,
+          paper: validation.validatedOptions.paper,
+          colour: validation.validatedOptions.colour,
+          sides: validation.validatedOptions.sides,
+          copies: validation.validatedOptions.copies,
+          binding: validation.validatedOptions.binding,
+          lamination: validation.validatedOptions.lamination,
+          calculatedPrice: calculatedPrintPrice,
+        };
+      }
+
+      // Compute grand total
+      const stationeryTotal = validatedItems.reduce((acc, it) => acc + it.subtotal, 0);
+      const totalAmount = stationeryTotal + calculatedPrintPrice;
+
+      // Generate cryptographically secure order ID and pickup token
       const randomHex = crypto.randomBytes(4).toString("hex").toUpperCase();
       const orderId = `LP-${randomHex}`;
       const pickupToken = crypto.randomBytes(6).toString("hex").toUpperCase();
       const pickupTokenHash = crypto.createHash("sha256").update(pickupToken).digest("hex");
 
-      const createdOrder = repository.createPrintOrder({
+      if (printJobDetails) {
+        printJobDetails.filePath = `/api/documents/${orderId}`;
+      }
+
+      // Atomic execution: creates order, creates items, creates print job, deducts inventory
+      const createdOrder = repository.createUnifiedOrder({
         orderId,
         shopId: shop.id,
         customerId: req.user?.id || null,
-        customerName: req.user?.name || "Guest Customer",
+        customerName: req.user?.name || (req.user?.email ? req.user.email.split("@")[0] : "Customer"),
         customerEmail: req.user?.email || null,
         pickupTime: pickupTime.trim(),
         pickupToken,
         pickupTokenHash,
-        totalAmount: pricing.total,
-        fileName: req.file.originalname,
-        storageKey: req.file.filename,
-        filePath: `/api/documents/${orderId}`,
-        fileMime: req.file.mimetype,
-        fileSizeBytes: req.file.size,
-        paper: validation.validatedOptions.paper,
-        colour: validation.validatedOptions.colour,
-        sides: validation.validatedOptions.sides,
-        copies: validation.validatedOptions.copies,
-        binding: validation.validatedOptions.binding,
-        lamination: validation.validatedOptions.lamination,
+        totalAmount,
+        items: validatedItems,
+        printJob: printJobDetails,
       });
 
       res.status(201).json(formatClientOrder(createdOrder));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating order:", error);
-      res.status(500).json({ error: "Internal Server Error" });
+      res.status(500).json({ error: error.message || "Internal Server Error" });
     }
   }
 );
@@ -246,7 +356,7 @@ router.patch("/:id/status", authenticateToken, async (req: Request, res: Respons
 
     // Validate permitted status transition
     const allowedNextStatuses = VALID_TRANSITIONS[order.status] || [];
-    if (!allowedNextStatuses.includes(status) && order.status !== status) {
+    if (!allowedNextStatuses.includes(status)) {
       res.status(400).json({
         error: `Invalid status transition from '${order.status}' to '${status}'. Allowed: ${allowedNextStatuses.join(", ") || "None (Terminal status)"}`,
       });
@@ -260,7 +370,17 @@ router.patch("/:id/status", authenticateToken, async (req: Request, res: Respons
     }, note);
 
     res.json(formatClientOrder(updated));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && (
+      error.message.includes("Cannot") ||
+      error.message.includes("already") ||
+      error.message.includes("terminal") ||
+      error.message.includes("conflict") ||
+      error.message.includes("Invalid")
+    )) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
     console.error("Error updating order status:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -342,6 +462,15 @@ router.post("/:id/cancel", authenticateToken, async (req: Request, res: Response
       return;
     }
 
+    if (order.status === "Completed") {
+      res.status(400).json({ error: "Cannot cancel a completed order." });
+      return;
+    }
+    if (order.status === "Cancelled" || order.status === "Rejected") {
+      res.status(400).json({ error: `Order is already in terminal status '${order.status}'.` });
+      return;
+    }
+
     // Customer cancellation checks
     if (!isPlatformAdmin(user.role) && !repository.isShopMember(order.shop_id, user.id)) {
       if (order.customer_id !== user.id && order.customer_email?.toLowerCase() !== user.email.toLowerCase()) {
@@ -364,7 +493,61 @@ router.post("/:id/cancel", authenticateToken, async (req: Request, res: Response
     }, reason || "Order cancelled");
 
     res.json({ success: true, message: "Order cancelled successfully", order: formatClientOrder(updated) });
+  } catch (error: any) {
+    if (error.message && (
+      error.message.includes("Cannot") ||
+      error.message.includes("already") ||
+      error.message.includes("terminal") ||
+      error.message.includes("conflict") ||
+      error.message.includes("Invalid")
+    )) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    console.error("Cancel order error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// GET /api/orders/:id/timeline - Get order status lifecycle history
+router.get("/:id/timeline", authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user!;
+    const orderId = getParam(req.params.id);
+    const order = repository.getOrderById(orderId);
+
+    if (!order) {
+      res.status(404).json({ error: "Order not found" });
+      return;
+    }
+
+    const isCustomer =
+      order.customer_id === user.id ||
+      (order.customer_email && order.customer_email.toLowerCase() === user.email.toLowerCase());
+    const isStaff = repository.isShopMember(order.shop_id, user.id);
+    const isAdmin = isPlatformAdmin(user.role);
+
+    if (!isCustomer && !isStaff && !isAdmin) {
+      res.status(403).json({ error: "Forbidden: You are not authorized to view this order's timeline" });
+      return;
+    }
+
+    const timeline = repository.getOrderTimeline(order.id);
+    res.json({
+      success: true,
+      orderId: order.id,
+      currentStatus: order.status,
+      timeline: timeline.map((t) => ({
+        id: t.id,
+        fromStatus: t.from_status,
+        toStatus: t.to_status,
+        changedByName: t.changed_by_name,
+        note: t.note,
+        createdAt: t.created_at,
+      })),
+    });
   } catch (error) {
+    console.error("Order timeline error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });

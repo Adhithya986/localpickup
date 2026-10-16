@@ -455,6 +455,229 @@ export function runMigrations(db: DatabaseSync): MigrationSummary {
     }
   }
 
+  // ----------------------------------------------------
+  // Migration 003: In-App Notifications Schema
+  // ----------------------------------------------------
+  if (!appliedMigrations.has("003_notifications")) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        shop_id TEXT,
+        order_id TEXT,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
+      CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
+    `);
+
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run("003_notifications");
+    appliedCount++;
+  }
+
+  // ----------------------------------------------------
+  // Migration 004: SaaS Subscriptions, Plan Limits & Admin Audit Logs
+  // ----------------------------------------------------
+  if (!appliedMigrations.has("004_subscriptions_admin_audit")) {
+    db.exec(`
+      -- 1. Subscription Plans
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        slug TEXT UNIQUE NOT NULL,
+        description TEXT,
+        monthly_price REAL NOT NULL DEFAULT 0 CHECK(monthly_price >= 0),
+        maximum_staff INTEGER NOT NULL DEFAULT 1 CHECK(maximum_staff >= 1),
+        maximum_products INTEGER NOT NULL DEFAULT 10 CHECK(maximum_products >= 0),
+        analytics_level TEXT NOT NULL CHECK(analytics_level IN ('BASIC', 'STANDARD', 'ADVANCED')) DEFAULT 'BASIC',
+        feature_config_json TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      -- 2. Shop Subscriptions
+      CREATE TABLE IF NOT EXISTS shop_subscriptions (
+        id TEXT PRIMARY KEY,
+        shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+        plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
+        status TEXT NOT NULL CHECK(status IN ('TRIAL', 'ACTIVE', 'PAST_DUE', 'EXPIRED', 'SUSPENDED', 'CANCELLED')),
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        trial_ends_at TEXT,
+        current_period_start TEXT NOT NULL DEFAULT (datetime('now')),
+        current_period_end TEXT NOT NULL DEFAULT (datetime('now', '+30 days')),
+        cancelled_at TEXT,
+        requested_plan_id TEXT REFERENCES subscription_plans(id),
+        requested_at TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(shop_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_shop_subscriptions_shop ON shop_subscriptions(shop_id);
+      CREATE INDEX IF NOT EXISTS idx_shop_subscriptions_status ON shop_subscriptions(status);
+
+      -- 3. Subscription History
+      CREATE TABLE IF NOT EXISTS subscription_history (
+        id TEXT PRIMARY KEY,
+        shop_id TEXT NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+        from_plan_id TEXT REFERENCES subscription_plans(id),
+        to_plan_id TEXT NOT NULL REFERENCES subscription_plans(id),
+        from_status TEXT,
+        to_status TEXT NOT NULL,
+        changed_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        reason TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sub_history_shop ON subscription_history(shop_id);
+      CREATE INDEX IF NOT EXISTS idx_sub_history_created ON subscription_history(created_at);
+
+      -- 4. Admin Audit Logs
+      CREATE TABLE IF NOT EXISTS admin_audit_logs (
+        id TEXT PRIMARY KEY,
+        actor_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        actor_name TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target_type TEXT NOT NULL CHECK(target_type IN ('SHOP', 'SUBSCRIPTION', 'PLAN', 'USER')),
+        target_id TEXT NOT NULL,
+        details_json TEXT,
+        ip_address TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON admin_audit_logs(actor_user_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON admin_audit_logs(target_type, target_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON admin_audit_logs(created_at);
+    `);
+
+    // Seed default subscription plans
+    const insertPlan = db.prepare(`
+      INSERT OR IGNORE INTO subscription_plans 
+      (id, name, slug, description, monthly_price, maximum_staff, maximum_products, analytics_level, feature_config_json, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    insertPlan.run(
+      "plan_trial",
+      "14-Day Free Trial",
+      "trial",
+      "Full access to evaluate LocalPickup for your print shop",
+      0,
+      2,
+      15,
+      "BASIC",
+      JSON.stringify({ allow_custom_branding: false, allow_volume_discounts: true, allow_priority_queue: true })
+    );
+
+    insertPlan.run(
+      "plan_starter",
+      "Starter Merchant",
+      "starter",
+      "Essential tools for neighborhood stationery & copy shops",
+      499,
+      3,
+      50,
+      "BASIC",
+      JSON.stringify({ allow_custom_branding: false, allow_volume_discounts: true, allow_priority_queue: true })
+    );
+
+    insertPlan.run(
+      "plan_pro",
+      "Professional Shop",
+      "pro",
+      "For busy campus xerox centers and expanding stationery stores",
+      1499,
+      10,
+      250,
+      "STANDARD",
+      JSON.stringify({ allow_custom_branding: true, allow_volume_discounts: true, allow_priority_queue: true, export_reports: true })
+    );
+
+    insertPlan.run(
+      "plan_enterprise",
+      "Enterprise Fleet",
+      "enterprise",
+      "High volume fleet operations with dedicated SLA & unlimited scale",
+      3999,
+      500,
+      5000,
+      "ADVANCED",
+      JSON.stringify({ allow_custom_branding: true, allow_volume_discounts: true, allow_priority_queue: true, export_reports: true, dedicated_support: true })
+    );
+
+    // Ingest existing shops into shop_subscriptions
+    const existingShops = db.prepare("SELECT * FROM shops").all() as Array<{
+      id: string;
+      subscription_status: string;
+      created_at: string;
+    }>;
+
+    const insertSub = db.prepare(`
+      INSERT OR IGNORE INTO shop_subscriptions
+      (id, shop_id, plan_id, status, started_at, trial_ends_at, current_period_start, current_period_end, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertHistory = db.prepare(`
+      INSERT INTO subscription_history
+      (id, shop_id, from_plan_id, to_plan_id, from_status, to_status, reason, created_at)
+      VALUES (?, ?, NULL, ?, NULL, ?, ?, ?)
+    `);
+
+    for (const s of existingShops) {
+      const subId = `sub-${s.id}`;
+      const startedAt = s.created_at || new Date().toISOString();
+      const trialEnds = new Date(new Date(startedAt).getTime() + 14 * 86400000).toISOString();
+      const periodEnd = new Date(new Date(startedAt).getTime() + 30 * 86400000).toISOString();
+
+      let planId = "plan_trial";
+      let status = "TRIAL";
+
+      if (s.subscription_status === "ACTIVE") {
+        planId = "plan_starter";
+        status = "ACTIVE";
+      } else if (s.subscription_status === "SUSPENDED") {
+        planId = "plan_trial";
+        status = "SUSPENDED";
+      }
+
+      insertSub.run(
+        subId,
+        s.id,
+        planId,
+        status,
+        startedAt,
+        status === "TRIAL" ? trialEnds : null,
+        startedAt,
+        periodEnd,
+        startedAt,
+        startedAt
+      );
+
+      insertHistory.run(
+        `subhist-${s.id}-init`,
+        s.id,
+        planId,
+        status,
+        "Initial legacy migration ingest",
+        startedAt
+      );
+    }
+
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run("004_subscriptions_admin_audit");
+    appliedCount++;
+  }
+
   return {
     appliedCount,
     usersMigrated,

@@ -2,6 +2,7 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { authFetch } from "../utils/api";
+import { clearCart } from "../utils/cart";
 
 const pickupSlots = [
   "8:00 PM",
@@ -19,26 +20,68 @@ function Pickup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
 
+  if (!order || (!order.file && (!order.items || order.items.length === 0))) {
+    return (
+      <div className="app">
+        <Navbar />
+        <main style={{ textAlign: "center", padding: "4rem 1rem" }}>
+          <h2>No items selected for pickup</h2>
+          <p style={{ color: "#64748b", margin: "1rem 0 1.5rem" }}>
+            Please select stationery items or configure document printing from a shop first.
+          </p>
+          <Link
+            to="/shops"
+            style={{
+              background: "#4f46e5",
+              color: "#fff",
+              padding: "0.75rem 1.5rem",
+              borderRadius: "8px",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Browse Local Shops
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   async function confirmBooking() {
     if (!selectedSlot || !order || isSubmitting) return;
 
     setIsSubmitting(true);
     setError("");
-    
+
     try {
       const formData = new FormData();
+      formData.append("shopId", order.shopId || "1");
+      formData.append("shopName", order.shopName || "ABC Digital Prints");
+      formData.append("pickupTime", selectedSlot);
+
+      // Append stationery items if present
+      if (order.items && order.items.length > 0) {
+        formData.append(
+          "items",
+          JSON.stringify(
+            order.items.map((it: any) => ({
+              productId: it.productId,
+              quantity: it.quantity,
+            }))
+          )
+        );
+      }
+
+      // Append printing document and options if present
       if (order.file) {
         formData.append("file", order.file);
       }
-      formData.append("shopId", order.shopId || "1");
-      formData.append("shopName", order.shopName || "ABC Digital Prints");
-      formData.append("paper", order.paper);
-      formData.append("colour", order.colour);
-      formData.append("sides", order.sides);
-      formData.append("copies", order.copies.toString());
-      formData.append("binding", order.binding.toString());
-      formData.append("lamination", order.lamination.toString());
-      formData.append("pickupTime", selectedSlot);
+      if (order.paper) formData.append("paper", order.paper);
+      if (order.colour) formData.append("colour", order.colour);
+      if (order.sides) formData.append("sides", order.sides);
+      if (order.copies) formData.append("copies", order.copies.toString());
+      if (order.binding !== undefined) formData.append("binding", order.binding.toString());
+      if (order.lamination !== undefined) formData.append("lamination", order.lamination.toString());
 
       const response = await authFetch("/api/orders", {
         method: "POST",
@@ -50,6 +93,9 @@ function Pickup() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to submit order");
       }
+
+      // Clear client-side cart on successful checkout
+      clearCart();
 
       navigate("/booking-success", {
         state: data,
@@ -68,19 +114,14 @@ function Pickup() {
 
       <main>
         <section className="pickup-header">
-          <Link to="/print" className="back-link">
-            ← Back to printing
+          <Link to={`/shops/${order?.shopId || "1"}`} className="back-link">
+            ← Back to shop
           </Link>
 
-          <p className="eyebrow">
-            PICKUP SCHEDULING
-          </p>
-
+          <p className="eyebrow">PICKUP SCHEDULING</p>
           <h1>When would you like to pick it up?</h1>
-
           <p className="hero-description">
-            Choose a convenient time and we'll have
-            your order ready for you.
+            Choose a convenient time slot. Your order will be prepared and waiting at the counter.
           </p>
         </section>
 
@@ -89,11 +130,8 @@ function Pickup() {
             <div className="pickup-section">
               <div className="date-heading">
                 <div>
-                  <span className="date-label">
-                    TODAY
-                  </span>
-
-                  <h2>Monday, September 21</h2>
+                  <span className="date-label">TODAY</span>
+                  <h2>Self-Pickup Time Slots</h2>
                 </div>
               </div>
 
@@ -101,22 +139,11 @@ function Pickup() {
                 {pickupSlots.map((slot) => (
                   <button
                     key={slot}
-                    className={`time-slot ${
-                      selectedSlot === slot
-                        ? "selected"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      setSelectedSlot(slot)
-                    }
+                    className={`time-slot ${selectedSlot === slot ? "selected" : ""}`}
+                    onClick={() => setSelectedSlot(slot)}
                   >
                     <strong>{slot}</strong>
-
-                    <span>
-                      {selectedSlot === slot
-                        ? "Selected"
-                        : "Available"}
-                    </span>
+                    <span>{selectedSlot === slot ? "Selected" : "Available"}</span>
                   </button>
                 ))}
               </div>
@@ -124,16 +151,10 @@ function Pickup() {
 
             <div className="pickup-note">
               <span>💡</span>
-
               <div>
-                <strong>
-                  We'll prepare your order before your slot
-                </strong>
-
+                <strong>Self-Pickup Verification at Counter</strong>
                 <p>
-                  Please arrive around your selected
-                  pickup time. Your order will be
-                  waiting for you.
+                  LocalPickup is strictly self-pickup. Once your order is ready, you will present your secure pickup QR code or token to collect your items.
                 </p>
               </div>
             </div>
@@ -144,32 +165,39 @@ function Pickup() {
 
             <div className="summary-shop">
               <span>Shop</span>
-
-              <strong>
-                ABC Digital Prints
-              </strong>
+              <strong>{order?.shopName || "ABC Digital Prints"}</strong>
             </div>
 
+            {/* Document print summary if included */}
+            {order?.fileName && (
+              <div className="summary-line">
+                <span>Document</span>
+                <span>{order.fileName}</span>
+              </div>
+            )}
+            {order?.copies && (
+              <div className="summary-line">
+                <span>Print copies</span>
+                <span>{order.copies}</span>
+              </div>
+            )}
+
+            {/* Stationery items summary if included */}
+            {order?.items && order.items.length > 0 && (
+              <div style={{ margin: "8px 0" }}>
+                <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>Stationery Items:</span>
+                {order.items.map((it: any) => (
+                  <div key={it.productId} className="summary-line" style={{ paddingLeft: "8px", fontSize: "0.85rem" }}>
+                    <span>{it.title || "Product"} × {it.quantity}</span>
+                    {it.price && <span>₹{it.price * it.quantity}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="summary-line">
-              <span>Document</span>
-
-              <span>
-                {order?.fileName || "Document"}
-              </span>
-            </div>
-
-            <div className="summary-line">
-              <span>Copies</span>
-
-              <span>
-                {order?.copies || 1}
-              </span>
-            </div>
-
-            <div className="summary-line">
-              <span>Pickup</span>
-
-              <span>
+              <span>Pickup Slot</span>
+              <span style={{ fontWeight: selectedSlot ? 600 : 400, color: selectedSlot ? "#4f46e5" : "#64748b" }}>
                 {selectedSlot || "Select a time"}
               </span>
             </div>
@@ -177,16 +205,13 @@ function Pickup() {
             <div className="summary-divider" />
 
             <div className="summary-total">
-              <span>Total</span>
-
-              <strong>
-                ₹{order?.total || 0}
-              </strong>
+              <span>Total for Pickup</span>
+              <strong>₹{order?.total || 0}</strong>
             </div>
 
             {error && (
-              <div style={{ color: "#dc2626", background: "#fee2e2", padding: "0.5rem", borderRadius: "4px", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-                {error}
+              <div style={{ color: "#dc2626", background: "#fee2e2", padding: "0.6rem", borderRadius: "6px", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                ⚠️ {error}
               </div>
             )}
 
@@ -195,7 +220,7 @@ function Pickup() {
               disabled={!selectedSlot || isSubmitting}
               onClick={confirmBooking}
             >
-              {isSubmitting ? "Confirming..." : "Confirm Booking →"}
+              {isSubmitting ? "Confirming Order..." : "Confirm Booking →"}
             </button>
 
             {!selectedSlot && (

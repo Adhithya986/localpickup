@@ -17,11 +17,62 @@ function isAuthorizedShopStaff(req: Request, shopId: string, requiredRole: "OWNE
   return repository.isShopMember(shopId, user.id, requiredRole);
 }
 
+// GET /api/shops/:shopId/categories - Public categories list for a shop
+router.get("/:shopId/categories", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const shopId = getParam(req.params.shopId);
+    const shop = repository.getShopById(shopId);
+    if (!shop) {
+      res.status(404).json({ error: "Shop not found" });
+      return;
+    }
+
+    const categories = repository.getCategoriesByShop(shopId);
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /api/shops/:shopId/categories - Create a category (Staff / Owner only)
+router.post("/:shopId/categories", authenticateToken, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const shopId = getParam(req.params.shopId);
+
+    if (!isAuthorizedShopStaff(req, shopId)) {
+      res.status(403).json({ error: "Forbidden: You are not authorized to add categories to this shop" });
+      return;
+    }
+
+    const { name } = req.body;
+    if (!name || typeof name !== "string" || name.trim() === "") {
+      res.status(400).json({ error: "Category name is required" });
+      return;
+    }
+
+    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const categoryId = `cat-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
+
+    const category = repository.createCategory({
+      id: categoryId,
+      shop_id: shopId,
+      name: name.trim(),
+      slug,
+      sort_order: 0,
+    });
+
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // GET /api/shops/:shopId/products - Public list
 router.get("/:shopId/products", async (req: Request, res: Response): Promise<void> => {
   try {
     const shopId = getParam(req.params.shopId);
     const categoryId = req.query.category as string | undefined;
+    const availableOnly = req.query.availableOnly === "true";
 
     const shop = repository.getShopById(shopId);
     if (!shop) {
@@ -29,7 +80,7 @@ router.get("/:shopId/products", async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const products = repository.getProductsByShop(shopId, categoryId);
+    const products = repository.getProductsByShop(shopId, categoryId, availableOnly);
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -80,6 +131,15 @@ router.post("/:shopId/products", authenticateToken, async (req: Request, res: Re
     const numStock = parseInt(stockQuantity, 10);
     if (isNaN(numStock) || numStock < 0) {
       res.status(400).json({ error: "Stock quantity must be a non-negative integer" });
+      return;
+    }
+
+    // Enforce subscription plan product catalog limit
+    const entitlements = repository.getShopEntitlements(shopId);
+    if (!entitlements.canAddProduct) {
+      res.status(400).json({
+        error: `Product catalog limit of ${entitlements.maxProducts} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to list more products.`,
+      });
       return;
     }
 

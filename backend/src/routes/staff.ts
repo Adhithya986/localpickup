@@ -5,9 +5,6 @@ import { authenticateToken, isPlatformAdmin } from "../middleware/auth";
 const router = Router({ mergeParams: true });
 const getParam = (p: string | string[] | undefined): string => Array.isArray(p) ? p[0] : (p || "");
 
-// Require authentication for all staff management endpoints
-router.use(authenticateToken);
-
 // Helper to check if requester can manage staff for this shop
 function canManageShopStaff(req: Request, shopId: string): boolean {
   const user = req.user!;
@@ -22,7 +19,7 @@ function canManageShopStaff(req: Request, shopId: string): boolean {
 }
 
 // GET /api/shops/:shopId/staff - List staff members
-router.get("/:shopId/staff", async (req: Request, res: Response): Promise<void> => {
+router.get("/:shopId/staff", authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const shopId = getParam(req.params.shopId);
     const shop = repository.getShopById(shopId);
@@ -51,7 +48,7 @@ router.get("/:shopId/staff", async (req: Request, res: Response): Promise<void> 
 });
 
 // POST /api/shops/:shopId/staff - Add a staff member
-router.post("/:shopId/staff", async (req: Request, res: Response): Promise<void> => {
+router.post("/:shopId/staff", authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const shopId = getParam(req.params.shopId);
     const { email, role } = req.body;
@@ -81,6 +78,18 @@ router.post("/:shopId/staff", async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Enforce subscription plan staff limit for new staff members
+    const isAlreadyMember = repository.isShopMember(shopId, targetUser.id);
+    if (!isAlreadyMember) {
+      const entitlements = repository.getShopEntitlements(shopId);
+      if (!entitlements.canAddStaff) {
+        res.status(400).json({
+          error: `Staff account limit of ${entitlements.maxStaff} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to add more staff.`,
+        });
+        return;
+      }
+    }
+
     // Add membership
     const member = repository.addShopMember(shopId, targetUser.id, assignedRole);
 
@@ -95,7 +104,7 @@ router.post("/:shopId/staff", async (req: Request, res: Response): Promise<void>
 });
 
 // DELETE /api/shops/:shopId/staff/:userId - Remove a staff member
-router.delete("/:shopId/staff/:userId", async (req: Request, res: Response): Promise<void> => {
+router.delete("/:shopId/staff/:userId", authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const shopId = getParam(req.params.shopId);
     const userId = getParam(req.params.userId);

@@ -42,23 +42,45 @@ function BookingSuccess() {
             </div>
 
             <div className="booking-details">
+              {order?.fileName ? (
+                <>
+                  <div>
+                    <span>Document</span>
+                    <strong>{order.fileName}</strong>
+                  </div>
+                  <div>
+                    <span>Copies</span>
+                    <strong>{order.copies || 1}</strong>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <span>Order Type</span>
+                  <strong>Stationery Products</strong>
+                </div>
+              )}
               <div>
-                <span>Document</span>
-                <strong>{order?.fileName || "Document"}</strong>
-              </div>
-              <div>
-                <span>Pickup</span>
+                <span>Pickup Time</span>
                 <strong>{order?.pickupTime || "Selected slot"}</strong>
               </div>
               <div>
-                <span>Copies</span>
-                <strong>{order?.copies || 1}</strong>
-              </div>
-              <div>
-                <span>Total</span>
+                <span>Total Amount</span>
                 <strong>₹{order?.total || 0}</strong>
               </div>
             </div>
+
+            {order?.items && order.items.length > 0 && (
+              <div style={{ margin: "1rem 0", padding: "0.75rem", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.9rem", color: "#334155" }}>Ordered Items:</h4>
+                <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.85rem", color: "#475569" }}>
+                  {order.items.map((it: any, idx: number) => (
+                    <li key={idx} style={{ marginBottom: "4px" }}>
+                      <strong>{it.title || "Item"}</strong> × {it.quantity} (₹{it.subtotal || it.unitPrice * it.quantity})
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="qr-section">
               <div className="qr-wrapper">
