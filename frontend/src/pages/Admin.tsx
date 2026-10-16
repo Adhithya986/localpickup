@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
+import { authFetch, getUser } from "../utils/api";
 
 interface Shop {
   id: string;
@@ -15,13 +16,12 @@ function Admin() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
+    const user = getUser();
+    if (!user) {
       navigate("/login");
       return;
     }
-    const user = JSON.parse(userStr);
-    if (user.role !== "ADMIN") {
+    if (user.role !== "ADMIN" && user.role !== "PLATFORM_ADMIN") {
       navigate("/");
       return;
     }
@@ -30,10 +30,12 @@ function Admin() {
   }, [navigate]);
 
   const fetchShops = () => {
-    fetch("/api/admin/shops")
+    authFetch("/api/admin/shops")
       .then(res => res.json())
       .then(data => {
-        setShops(data);
+        if (Array.isArray(data)) {
+          setShops(data);
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -45,7 +47,7 @@ function Admin() {
   const toggleSubscription = async (shopId: string, currentStatus: string) => {
     const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     try {
-      await fetch(`/api/admin/shops/${shopId}/subscription`, {
+      await authFetch(`/api/admin/shops/${shopId}/subscription`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus })

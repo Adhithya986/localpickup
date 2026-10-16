@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
+import { getUser, clearAuth } from "../utils/api";
 
 function Navbar() {
   const navigate = useNavigate();
-  const userStr = localStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = getUser();
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    clearAuth();
     navigate("/");
   };
 
@@ -20,12 +20,12 @@ function Navbar() {
         {user ? (
           <>
             <span style={{ fontSize: "0.9rem", color: "#666" }}>
-              Hi, {user.name} ({user.role})
+              Hi, {user.name} ({user.role === "SHOP_OWNER" ? "Shop Owner" : user.role === "SHOPKEEPER" ? "Shopkeeper" : user.role === "ADMIN" ? "Admin" : "Customer"})
             </span>
-            {user.role === "ADMIN" && (
+            {(user.role === "ADMIN" || user.role === "PLATFORM_ADMIN") && (
               <Link to="/admin" style={{ textDecoration: 'none', color: '#166534', fontWeight: 'bold' }}>Admin Panel</Link>
             )}
-            {user.role === "SHOPKEEPER" && (
+            {(user.role === "SHOPKEEPER" || user.role === "SHOP_OWNER") && (
               <Link to="/dashboard" style={{ textDecoration: 'none', color: '#166534', fontWeight: 'bold' }}>Dashboard</Link>
             )}
             {user.role === "CUSTOMER" && (

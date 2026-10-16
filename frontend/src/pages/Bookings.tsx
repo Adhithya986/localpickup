@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { authFetch, getToken } from "../utils/api";
 
 interface Order {
   id: string;
@@ -8,28 +9,42 @@ interface Order {
   fileName: string;
   pickupTime: string;
   total: number;
-  status: "Pending" | "Ready" | "Completed";
+  pickupToken?: string;
+  status: "Pending" | "Accepted" | "Preparing" | "Ready" | "Completed" | "Rejected" | "Cancelled";
   createdAt: string;
 }
 
 function Bookings() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/orders")
-      .then((res) => res.json())
+    if (!getToken()) {
+      navigate("/login");
+      return;
+    }
+
+    authFetch("/api/orders")
+      .then((res) => {
+        if (res.status === 401) {
+          navigate("/login");
+          return [];
+        }
+        return res.json();
+      })
       .then((data) => {
-        // Sort by newest first
-        const sorted = data.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setOrders(sorted);
+        if (Array.isArray(data)) {
+          const sorted = data.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(sorted);
+        }
         setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to fetch orders:", err);
         setLoading(false);
       });
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="app">

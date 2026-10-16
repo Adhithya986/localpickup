@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import Navbar from "../components/Navbar";
 
 interface Shop {
   id: string;
@@ -63,12 +64,7 @@ function ShopDetails() {
 
   return (
     <div className="app">
-      <header className="navbar">
-        <Link to="/" className="logo">
-          Local<span>Pickup</span>
-        </Link>
-        <button className="login-button">Login</button>
-      </header>
+      <Navbar />
 
       <main>
         <section className="shop-details-header">

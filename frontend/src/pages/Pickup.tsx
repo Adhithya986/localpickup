@@ -1,5 +1,7 @@
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useState } from "react";
+import Navbar from "../components/Navbar";
+import { authFetch } from "../utils/api";
 
 const pickupSlots = [
   "8:00 PM",
@@ -15,11 +17,13 @@ function Pickup() {
   const order = location.state;
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>("");
 
   async function confirmBooking() {
     if (!selectedSlot || !order || isSubmitting) return;
 
     setIsSubmitting(true);
+    setError("");
     
     try {
       const formData = new FormData();
@@ -34,26 +38,25 @@ function Pickup() {
       formData.append("copies", order.copies.toString());
       formData.append("binding", order.binding.toString());
       formData.append("lamination", order.lamination.toString());
-      formData.append("total", order.total.toString());
       formData.append("pickupTime", selectedSlot);
 
-      const response = await fetch("/api/orders", {
+      const response = await authFetch("/api/orders", {
         method: "POST",
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to submit order");
+        throw new Error(data.error || "Failed to submit order");
       }
 
-      const savedOrder = await response.json();
-
       navigate("/booking-success", {
-        state: savedOrder,
+        state: data,
       });
-    } catch (error) {
-      console.error("Booking error:", error);
-      alert("Failed to confirm booking. Please try again.");
+    } catch (err: any) {
+      console.error("Booking error:", err);
+      setError(err.message || "Failed to confirm booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -61,15 +64,7 @@ function Pickup() {
 
   return (
     <div className="app">
-      <header className="navbar">
-        <Link to="/" className="logo">
-          Local<span>Pickup</span>
-        </Link>
-
-        <button className="login-button">
-          Login
-        </button>
-      </header>
+      <Navbar />
 
       <main>
         <section className="pickup-header">
@@ -188,6 +183,12 @@ function Pickup() {
                 ₹{order?.total || 0}
               </strong>
             </div>
+
+            {error && (
+              <div style={{ color: "#dc2626", background: "#fee2e2", padding: "0.5rem", borderRadius: "4px", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+                {error}
+              </div>
+            )}
 
             <button
               className="continue-button"

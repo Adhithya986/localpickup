@@ -34,11 +34,16 @@ function Login() {
         return;
       }
       
-      localStorage.setItem("user", JSON.stringify(data));
+      // Save token and user
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+      localStorage.setItem("user", JSON.stringify(data.user || data));
       
+      const userRole = data.role || data.user?.role;
       // Redirect based on role
-      if (data.role === "ADMIN") navigate("/admin");
-      else if (data.role === "SHOPKEEPER") navigate("/dashboard");
+      if (userRole === "ADMIN" || userRole === "PLATFORM_ADMIN") navigate("/admin");
+      else if (userRole === "SHOPKEEPER" || userRole === "SHOP_OWNER") navigate("/dashboard");
       else navigate("/");
     } catch (err) {
       setError("Network error occurred");

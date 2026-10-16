@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 function Print() {
   const navigate = useNavigate();
@@ -72,15 +73,7 @@ function Print() {
 
   return (
     <div className="app">
-      <header className="navbar">
-        <Link to="/" className="logo">
-          Local<span>Pickup</span>
-        </Link>
-
-        <button className="login-button">
-          Login
-        </button>
-      </header>
+      <Navbar />
 
       <main>
         <section className="print-header">
