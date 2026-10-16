@@ -40,6 +40,9 @@ describe("Milestone 2 Multi-Tenancy & Database Security Suite", () => {
     assert.strictEqual(shop1Res.status, 200, "Shop 1 login failed");
     shop1OwnerToken = shop1Res.body.token;
 
+    // Ensure Shop 1 is on plan_enterprise so repeated staff test additions have headroom
+    repository.assignShopPlan("1", "plan_enterprise", "admin-1", "Test suite enterprise setup");
+
     // 3. Register Shop 2 Owner and create Shop 2
     const shop2OwnerEmail = `shop2_owner_${Date.now()}@test.com`;
     const regShop2Owner = await request(app)
