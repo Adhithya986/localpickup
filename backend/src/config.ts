@@ -39,5 +39,5 @@ export const config: AppConfig = {
   corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
   uploadDir: path.resolve(__dirname, "..", process.env.UPLOAD_DIR || "uploads"),
   maxFileSize: 25 * 1024 * 1024, // 25 MB max document upload
-  dbPath: process.env.DB_PATH || (nodeEnv === "test" ? ":memory:" : path.resolve(__dirname, "..", "localpickup.db")),
+  dbPath: process.env.DB_PATH || process.env.DATABASE_PATH || (nodeEnv === "test" ? ":memory:" : path.resolve(__dirname, "..", "localpickup.db")),
 };

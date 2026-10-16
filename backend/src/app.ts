@@ -13,12 +13,19 @@ import notificationsRoutes from "./routes/notifications";
 import { errorHandler } from "./middleware/errorHandler";
 import { generalApiLimiter } from "./middleware/rateLimiter";
 import { authenticateToken } from "./middleware/auth";
+import { securityHeaders } from "./middleware/securityHeaders";
 import { initDatabaseSync } from "./database";
 
 export const app = express();
 
+// Security: Disable X-Powered-By fingerprinting
+app.disable("x-powered-by");
+
 // Initialize database schema and migrations
 initDatabaseSync();
+
+// Security: Apply OWASP-recommended HTTP security headers
+app.use(securityHeaders);
 
 // Security: configure CORS
 app.use(
@@ -27,8 +34,10 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server) or configured origin
       if (!origin || origin.startsWith("http://localhost:") || origin === config.corsOrigin) {
         callback(null, true);
+      } else if (config.nodeEnv === "production") {
+        callback(new Error(`CORS policy violation: origin '${origin}' not permitted`));
       } else {
-        callback(null, true); // Permissive in dev/test, strict in prod
+        callback(null, true);
       }
     },
     credentials: true,

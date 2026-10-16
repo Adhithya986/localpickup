@@ -78,26 +78,21 @@ router.post("/:shopId/staff", authenticateToken, async (req: Request, res: Respo
       return;
     }
 
-    // Enforce subscription plan staff limit for new staff members
-    const isAlreadyMember = repository.isShopMember(shopId, targetUser.id);
-    if (!isAlreadyMember) {
-      const entitlements = repository.getShopEntitlements(shopId);
-      if (!entitlements.canAddStaff) {
-        res.status(400).json({
-          error: `Staff account limit of ${entitlements.maxStaff} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to add more staff.`,
-        });
+    // Atomically enforce subscription plan staff limit and add membership
+    try {
+      const member = repository.addShopMemberWithQuota(shopId, targetUser.id, assignedRole);
+      res.status(201).json({
+        success: true,
+        message: `User ${targetUser.name} (${targetUser.email}) added as ${assignedRole}`,
+        member,
+      });
+    } catch (quotaErr: any) {
+      if (quotaErr.message && quotaErr.message.includes("limit")) {
+        res.status(400).json({ error: quotaErr.message });
         return;
       }
+      throw quotaErr;
     }
-
-    // Add membership
-    const member = repository.addShopMember(shopId, targetUser.id, assignedRole);
-
-    res.status(201).json({
-      success: true,
-      message: `User ${targetUser.name} (${targetUser.email}) added as ${assignedRole}`,
-      member,
-    });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Internal Server Error" });
   }

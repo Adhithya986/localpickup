@@ -192,7 +192,15 @@ router.post(
       let calculatedPrintPrice = 0;
 
       if (hasPrintDocument) {
-        const validation = validatePrintOptions(req.body);
+        let rawPrintOptions = req.body;
+        if (req.body.printJob) {
+          try {
+            rawPrintOptions = typeof req.body.printJob === "string" ? JSON.parse(req.body.printJob) : req.body.printJob;
+          } catch {
+            rawPrintOptions = req.body;
+          }
+        }
+        const validation = validatePrintOptions(rawPrintOptions);
         if (!validation.isValid || !validation.validatedOptions) {
           res.status(400).json({ error: validation.error || "Invalid print options" });
           return;

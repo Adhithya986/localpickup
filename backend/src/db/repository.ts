@@ -398,6 +398,40 @@ export class Repository {
     `).get(shopId, userId) as unknown as DBShopMember;
   }
 
+  addShopMemberWithQuota(shopId: string, userId: string, role: "OWNER" | "STAFF" = "STAFF"): DBShopMember {
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      const existing = this.db.prepare("SELECT role FROM shop_members WHERE shop_id = ? AND user_id = ?").get(shopId, userId) as any;
+      if (!existing && role === "STAFF") {
+        const entitlements = this.getShopEntitlements(shopId);
+        if (!entitlements.canAddStaff) {
+          throw new Error(`Staff account limit of ${entitlements.maxStaff} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to add more staff.`);
+        }
+      }
+
+      const now = new Date().toISOString();
+      const id = `mem-${shopId}-${userId}-${Date.now()}`;
+      this.db.prepare(`
+        INSERT INTO shop_members (id, shop_id, user_id, role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(shop_id, user_id) DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at
+      `).run(id, shopId, userId, role, now, now);
+
+      const member = this.db.prepare(`
+        SELECT m.*, u.name as user_name, u.email as user_email
+        FROM shop_members m
+        JOIN users u ON m.user_id = u.id
+        WHERE m.shop_id = ? AND m.user_id = ?
+      `).get(shopId, userId) as unknown as DBShopMember;
+
+      this.db.exec("COMMIT;");
+      return member;
+    } catch (err) {
+      this.db.exec("ROLLBACK;");
+      throw err;
+    }
+  }
+
   removeShopMember(shopId: string, userId: string): boolean {
     const shop = this.getShopById(shopId);
     if (shop && shop.owner_id === userId) {
@@ -481,6 +515,51 @@ export class Repository {
     );
 
     return this.getProductById(data.id)!;
+  }
+
+  createProductWithQuota(data: {
+    id: string;
+    shop_id: string;
+    category_id?: string | null;
+    name: string;
+    description?: string | null;
+    price: number;
+    stock_quantity: number;
+    is_available?: number;
+    image_url?: string | null;
+  }): DBProduct {
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      const entitlements = this.getShopEntitlements(data.shop_id);
+      if (!entitlements.canAddProduct) {
+        throw new Error(`Product catalog limit of ${entitlements.maxProducts} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to list more products.`);
+      }
+
+      const now = new Date().toISOString();
+      this.db.prepare(`
+        INSERT INTO products (id, shop_id, category_id, name, description, price, stock_quantity, is_available, image_url, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        data.id,
+        data.shop_id,
+        data.category_id || null,
+        data.name,
+        data.description || null,
+        data.price,
+        data.stock_quantity,
+        data.is_available !== undefined ? data.is_available : 1,
+        data.image_url || null,
+        now,
+        now
+      );
+
+      const product = this.getProductById(data.id)!;
+      this.db.exec("COMMIT;");
+      return product;
+    } catch (err) {
+      this.db.exec("ROLLBACK;");
+      throw err;
+    }
   }
 
   updateProduct(id: string, updates: Partial<DBProduct>): DBProduct | undefined {
@@ -1306,9 +1385,24 @@ export class Repository {
 
     const isSuspended = status === "SUSPENDED";
     const isCancelled = status === "CANCELLED";
-    const isExpired =
-      status === "EXPIRED" ||
-      (status === "TRIAL" && sub?.trial_ends_at && new Date(sub.trial_ends_at).getTime() < Date.now());
+
+    const parseSqliteDate = (dateStr: string | null | undefined): number | null => {
+      if (!dateStr) return null;
+      const normalized = dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z";
+      const parsed = Date.parse(normalized);
+      if (!isNaN(parsed)) return parsed;
+      const fallback = Date.parse(dateStr);
+      return isNaN(fallback) ? null : fallback;
+    };
+
+    const now = Date.now();
+    const trialEndTime = parseSqliteDate(sub?.trial_ends_at);
+    const periodEndTime = parseSqliteDate(sub?.current_period_end);
+
+    const isTrialExpired = status === "TRIAL" && trialEndTime !== null && trialEndTime < now;
+    const isPeriodExpired = (status === "ACTIVE" || status === "PAST_DUE") && periodEndTime !== null && periodEndTime < now;
+
+    const isExpired = status === "EXPIRED" || isTrialExpired || isPeriodExpired;
     const isPastDue = status === "PAST_DUE";
 
     const canAcceptOrders = !isSuspended && !isExpired && !isCancelled;
@@ -1318,7 +1412,7 @@ export class Repository {
     return {
       sub,
       plan,
-      status: isExpired && status === "TRIAL" ? "EXPIRED" : status,
+      status: isExpired && (status === "TRIAL" || status === "ACTIVE" || status === "PAST_DUE") ? "EXPIRED" : status,
       currentStaffCount,
       maxStaff: plan.maximum_staff,
       canAddStaff,

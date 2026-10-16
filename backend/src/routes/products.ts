@@ -134,30 +134,30 @@ router.post("/:shopId/products", authenticateToken, async (req: Request, res: Re
       return;
     }
 
-    // Enforce subscription plan product catalog limit
-    const entitlements = repository.getShopEntitlements(shopId);
-    if (!entitlements.canAddProduct) {
-      res.status(400).json({
-        error: `Product catalog limit of ${entitlements.maxProducts} reached for your ${entitlements.plan.name} plan. Please upgrade your subscription to list more products.`,
-      });
-      return;
-    }
-
     const productId = `prod-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
 
-    const product = repository.createProduct({
-      id: productId,
-      shop_id: shopId,
-      category_id: categoryId || null,
-      name: name.trim(),
-      description: description ? String(description).trim() : null,
-      price: numPrice,
-      stock_quantity: numStock,
-      is_available: numStock > 0 ? 1 : 0,
-      image_url: imageUrl || null,
-    });
+    // Atomically enforce subscription plan product catalog limit and insert product
+    try {
+      const product = repository.createProductWithQuota({
+        id: productId,
+        shop_id: shopId,
+        category_id: categoryId || null,
+        name: name.trim(),
+        description: description ? String(description).trim() : null,
+        price: numPrice,
+        stock_quantity: numStock,
+        is_available: numStock > 0 ? 1 : 0,
+        image_url: imageUrl || null,
+      });
 
-    res.status(201).json(product);
+      res.status(201).json(product);
+    } catch (quotaErr: any) {
+      if (quotaErr.message && quotaErr.message.includes("limit")) {
+        res.status(400).json({ error: quotaErr.message });
+        return;
+      }
+      throw quotaErr;
+    }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

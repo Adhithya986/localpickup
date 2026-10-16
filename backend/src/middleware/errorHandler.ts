@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { config } from "../config";
 
+function sanitizeErrorMessage(msg: string): string {
+  if (!msg || typeof msg !== "string") return "An error occurred";
+  return msg
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[REDACTED_TOKEN]")
+    .replace(/\$2[aby]\$[0-9]{2}\$[A-Za-z0-9./]{53}/g, "[REDACTED_HASH]");
+}
+
 export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction): void {
   // Handle Multer errors
   if (err instanceof multer.MulterError) {
@@ -21,9 +28,11 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
     console.error("Unhandled error:", err);
   }
 
-  const message = isClientError || config.nodeEnv !== "production"
+  const rawMessage = isClientError || config.nodeEnv !== "production"
     ? err.message || "An error occurred"
     : "Internal Server Error";
+
+  const message = sanitizeErrorMessage(rawMessage);
 
   res.status(status).json({
     error: message,
