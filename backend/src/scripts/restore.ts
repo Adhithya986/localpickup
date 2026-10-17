@@ -117,7 +117,7 @@ export function verifyAndRestoreBackup(options?: {
 
   return {
     success: true,
-    backupPath: backupFolder,
+    backupPath: backupFolder || "",
     targetDbPath,
     integrityStatus: String(integrityStatus),
     userCount,
