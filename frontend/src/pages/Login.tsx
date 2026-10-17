@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { apiUrl } from "../utils/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ function Login() {
     e.preventDefault();
     setError("");
     
-    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
+    const endpoint = apiUrl(isLogin ? "/api/auth/login" : "/api/auth/register");
     const body = isLogin ? { email, password } : { email, password, name, role };
     
     try {

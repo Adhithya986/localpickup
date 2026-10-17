@@ -31,6 +31,14 @@ export function clearAuth() {
   localStorage.removeItem("user");
 }
 
+export const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+export function apiUrl(path: string): string {
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
+}
+
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers = new Headers(options.headers || {});
@@ -39,7 +47,7 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(url, {
+  return fetch(apiUrl(url), {
     ...options,
     headers,
   });

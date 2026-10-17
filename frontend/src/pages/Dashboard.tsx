@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import Navbar from "../components/Navbar";
-import { authFetch, getToken, getUser } from "../utils/api";
+import { authFetch, getToken, getUser, apiUrl } from "../utils/api";
 import { OrderTimelineModal } from "../components/OrderTimelineModal";
 
 interface OrderItem {
@@ -597,7 +597,7 @@ function Dashboard() {
             ) : (
               <div className="services-list" style={{ gridTemplateColumns: "1fr" }}>
                 {orders.map((order) => {
-                  const docUrl = `/api/documents/${order.id}${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+                  const docUrl = apiUrl(`/api/documents/${order.id}${token ? `?token=${encodeURIComponent(token)}` : ""}`);
                   const hasPrintJob = Boolean(order.fileName);
                   const stationeryItems = order.items
                     ? order.items.filter((it) => it.itemType === "PRODUCT")

@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { useCart, addToCart, updateQuantity } from "../utils/cart";
+import { apiUrl } from "../utils/api";
 
 interface Shop {
   id: string;
@@ -58,9 +59,9 @@ function ShopDetails() {
     const shopId = id || "1";
 
     Promise.all([
-      fetch(`/api/shops/${shopId}`).then((res) => res.json()),
-      fetch(`/api/shops/${shopId}/categories`).then((res) => res.json()).catch(() => []),
-      fetch(`/api/shops/${shopId}/products?availableOnly=true`).then((res) => res.json()).catch(() => []),
+      fetch(apiUrl(`/api/shops/${shopId}`)).then((res) => res.json()),
+      fetch(apiUrl(`/api/shops/${shopId}/categories`)).then((res) => res.json()).catch(() => []),
+      fetch(apiUrl(`/api/shops/${shopId}/products?availableOnly=true`)).then((res) => res.json()).catch(() => []),
     ])
       .then(([shopData, catData, prodData]) => {
         setShop(shopData);

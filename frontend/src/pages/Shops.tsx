@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { apiUrl } from "../utils/api";
 
 interface Shop {
   id: string;
@@ -16,7 +17,7 @@ function Shops() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/shops")
+    fetch(apiUrl("/api/shops"))
       .then((res) => res.json())
       .then((data) => {
         setShops(data);
