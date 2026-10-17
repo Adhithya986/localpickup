@@ -58,7 +58,7 @@ router.get("/:orderId", authenticateToken, async (req: Request, res: Response): 
     let fullFilePath: string;
 
     if (pj?.storage_key) {
-      fullFilePath = path.join(config.uploadDir, pj.storage_key);
+      fullFilePath = path.join(config.uploadDir, path.basename(pj.storage_key));
     } else if (pj?.file_path) {
       const filename = path.basename(pj.file_path);
       fullFilePath = path.join(config.uploadDir, filename);

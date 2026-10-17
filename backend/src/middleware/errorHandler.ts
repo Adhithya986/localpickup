@@ -24,7 +24,7 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
   const status = err.status || err.statusCode || 500;
   const isClientError = status >= 400 && status < 500;
 
-  if (config.nodeEnv !== "production") {
+  if (config.nodeEnv !== "production" && !isClientError) {
     console.error("Unhandled error:", err);
   }
 

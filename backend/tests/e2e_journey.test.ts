@@ -199,7 +199,7 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
       // Step 9: Order confirmation received
       mixedOrderId = res.body.id;
       pickupToken = res.body.pickupToken;
-      assert.ok(mixedOrderId.startsWith("ord-"));
+      assert.ok(mixedOrderId && (mixedOrderId.startsWith("LP-") || mixedOrderId.startsWith("ord-")), "Order ID must have valid format");
       assert.ok(pickupToken, "Pickup token must be issued");
       assert.strictEqual(res.body.status, "Pending");
 
@@ -207,7 +207,7 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
       // Stationery: 2 * 25 = 50
       // Print calculation: A4 Colour (base 2 + colour 3 - double 1 = 4) * 2 copies = 8 + binding (20) = 28
       // Total = 50 + 28 = 78.0
-      assert.strictEqual(res.body.totalAmount, 78.0);
+      assert.strictEqual(res.body.total, 78.0);
     });
 
     it("Step 10: Customer views order timeline and notifications", async () => {
@@ -216,16 +216,17 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
         .get(`/api/orders/${mixedOrderId}/timeline`)
         .set("Authorization", `Bearer ${customerToken}`);
       assert.strictEqual(timelineRes.status, 200);
-      assert.ok(timelineRes.body.length >= 1);
-      assert.strictEqual(timelineRes.body[0].to_status, "Pending");
+      assert.ok(timelineRes.body.timeline && timelineRes.body.timeline.length >= 1);
+      assert.strictEqual(timelineRes.body.timeline[0].toStatus, "Pending");
 
       // Notification check
       const notifRes = await request(app)
         .get("/api/notifications")
         .set("Authorization", `Bearer ${customerToken}`);
       assert.strictEqual(notifRes.status, 200);
-      const placedNotif = notifRes.body.find((n: any) => n.order_id === mixedOrderId);
-      assert.ok(placedNotif);
+      const notifications = notifRes.body.notifications || [];
+      const placedNotif = notifications.find((n: any) => n.orderId === mixedOrderId);
+      assert.ok(placedNotif, "Placed notification must exist");
       assert.strictEqual(placedNotif.type, "ORDER_PLACED");
     });
 
@@ -260,11 +261,19 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
         .get("/api/notifications")
         .set("Authorization", `Bearer ${customerToken}`);
       assert.strictEqual(notifRes.status, 200);
-      const readyNotif = notifRes.body.find((n: any) => n.order_id === mixedOrderId && n.type === "ORDER_READY");
+      const readyNotifications = notifRes.body.notifications || [];
+      const readyNotif = readyNotifications.find((n: any) => n.orderId === mixedOrderId && n.type === "ORDER_READY");
       assert.ok(readyNotif, "Customer must receive ready notification");
     });
 
     it("Step 14-15: Customer visits physical counter; Staff verifies pickup code", async () => {
+      // Cross-tenant check: Unauthorized customer or staff from another shop cannot verify pickup (403)
+      const crossRes = await request(app)
+        .post(`/api/orders/${mixedOrderId}/verify-pickup`)
+        .set("Authorization", `Bearer ${customer2Token}`)
+        .send({ token: pickupToken });
+      assert.strictEqual(crossRes.status, 403);
+
       // Rejection of wrong pickup code
       const wrongCodeRes = await request(app)
         .post(`/api/orders/${mixedOrderId}/verify-pickup`)
@@ -276,7 +285,7 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
       const verifyRes = await request(app)
         .post(`/api/orders/${mixedOrderId}/verify-pickup`)
         .set("Authorization", `Bearer ${shopStaffToken}`)
-        .send({ pickupCode });
+        .send({ token: pickupToken });
       assert.strictEqual(verifyRes.status, 200);
       assert.strictEqual(verifyRes.body.status, "Completed");
     });
@@ -285,9 +294,9 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
       const dupRes = await request(app)
         .post(`/api/orders/${mixedOrderId}/verify-pickup`)
         .set("Authorization", `Bearer ${shopStaffToken}`)
-        .send({ pickupCode });
+        .send({ token: pickupToken });
       assert.strictEqual(dupRes.status, 400);
-      assert.ok(dupRes.body.error.includes("already Completed"));
+      assert.ok(dupRes.body.error.includes("already been verified"));
     });
 
     it("Step 17: Inventory deduction remains permanent and history is verified", async () => {
@@ -301,7 +310,7 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
         .get(`/api/orders/${mixedOrderId}/timeline`)
         .set("Authorization", `Bearer ${customerToken}`);
       assert.strictEqual(timelineRes.status, 200);
-      const statuses = timelineRes.body.map((h: any) => h.to_status);
+      const statuses = timelineRes.body.timeline.map((h: any) => h.toStatus);
       assert.ok(statuses.includes("Pending"));
       assert.ok(statuses.includes("Accepted"));
       assert.ok(statuses.includes("Preparing"));

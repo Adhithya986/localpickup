@@ -398,9 +398,10 @@ router.patch("/:id/status", authenticateToken, async (req: Request, res: Respons
 router.post("/:id/verify-pickup", authenticateToken, async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user!;
-    const { token } = req.body;
+    const rawToken = req.body.token || req.body.pickupCode;
+    const token = typeof rawToken === "string" ? rawToken : "";
 
-    if (!token || typeof token !== "string") {
+    if (!token) {
       res.status(400).json({ error: "Pickup token or code is required" });
       return;
     }
@@ -450,6 +451,7 @@ router.post("/:id/verify-pickup", authenticateToken, async (req: Request, res: R
     res.json({
       success: true,
       message: `Pickup verified successfully. Order ${order.id} is now Completed.`,
+      status: updated.status,
       order: formatClientOrder(updated),
     });
   } catch (error) {

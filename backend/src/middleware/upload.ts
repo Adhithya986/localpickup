@@ -41,11 +41,15 @@ const fileFilter = (
   const ext = path.extname(file.originalname).toLowerCase();
   
   if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return cb(new Error(`Unsupported file extension '${ext}'. Allowed: .pdf, .doc, .docx, .png, .jpg, .jpeg`));
+    const err: any = new Error(`Unsupported file extension '${ext}'. Allowed: .pdf, .doc, .docx, .png, .jpg, .jpeg`);
+    err.status = 400;
+    return cb(err);
   }
 
   if (!ALLOWED_MIME_TYPES.has(file.mimetype.toLowerCase())) {
-    return cb(new Error(`Unsupported file MIME type '${file.mimetype}'. Allowed documents and images only.`));
+    const err: any = new Error(`Unsupported file MIME type '${file.mimetype}'. Allowed documents and images only.`);
+    err.status = 400;
+    return cb(err);
   }
 
   cb(null, true);

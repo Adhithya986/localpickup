@@ -143,6 +143,7 @@ describe("Milestone 1 Security & Authentication Suite", () => {
 
   describe("Document Storage Security & Unauthorized Access", () => {
     let testOrderId = "";
+    let testStorageKey = "";
 
     before(async () => {
       const dummyFile = Buffer.from("Secret document content");
@@ -157,6 +158,19 @@ describe("Milestone 1 Security & Authentication Suite", () => {
         .field("pickupTime", "6:00 PM")
         .attach("file", dummyFile, "confidential.pdf");
       testOrderId = res.body.id;
+      testStorageKey = res.body.storageKey;
+    });
+
+    it("should reject upload of prohibited file extensions with 400 Bad Request", async () => {
+      const evilScript = Buffer.from("#!/bin/sh\nrm -rf /");
+      const res = await request(app)
+        .post("/api/orders")
+        .set("Authorization", `Bearer ${customerToken}`)
+        .field("shopId", "1")
+        .field("pickupTime", "6:00 PM")
+        .attach("file", evilScript, "malicious.sh");
+      assert.strictEqual(res.status, 400);
+      assert.match(res.body.error, /Unsupported file extension/i);
     });
 
     it("should block unauthenticated access to customer document", async () => {
@@ -184,6 +198,26 @@ describe("Milestone 1 Security & Authentication Suite", () => {
         .get(`/api/documents/${testOrderId}`)
         .set("Authorization", `Bearer ${shopToken}`);
       assert.strictEqual(res.status, 200);
+    });
+
+    it("should block unauthenticated access to direct upload path /uploads/:filename (401)", async () => {
+      const res = await request(app).get(`/uploads/${testStorageKey}`);
+      assert.strictEqual(res.status, 401);
+    });
+
+    it("should enforce tenant isolation on /uploads/:filename and block unauthorized customer (403)", async () => {
+      const res = await request(app)
+        .get(`/uploads/${testStorageKey}`)
+        .set("Authorization", `Bearer ${otherCustomerToken}`);
+      assert.strictEqual(res.status, 403);
+    });
+
+    it("should allow authorized customer to access /uploads/:filename with security headers (200)", async () => {
+      const res = await request(app)
+        .get(`/uploads/${testStorageKey}`)
+        .set("Authorization", `Bearer ${customerToken}`);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers["x-content-type-options"], "nosniff");
     });
   });
 

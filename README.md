@@ -198,6 +198,24 @@ npm test
   - Unread notification count tracking, single mark-as-read, and mark-all-read operations.
   - Security & tenant isolation: Customer B cannot read or mark Customer A's notifications (404/401).
   - Chronological timeline history and cross-tenant view authorization checks.
+- **Milestone 6 End-to-End Customer Journey & Production Hardening Suite** (`backend/tests/e2e_journey.test.ts` - 21 tests):
+  - 17-Step Mixed Self-Pickup Journey: Customer registration, shop selection, stationery catalog browsing, cart addition, document upload, print configuration, server price verification, order confirmation with pickup token, timeline and in-app notifications, shopkeeper order acceptance, preparation, marking ready, physical counter visit, atomic single-use code verification, completion, and inventory verification.
+  - Stationery-Only Order & Single-Restoration Integrity: Decrements stock on order, rejects unauthorized customer status modifications (403), restores stock exactly once upon cancellation/rejection, prevents duplicate stock restoration, and rejects ordinary status updates on completed orders.
+  - Print-Only Order & Document Access Controls: Uploads and isolates customer PDF, allows download only to placing customer and assigned shop staff, and blocks unauthorized cross-customer download attempts (403).
+  - Production Security Headers & Date-Driven Expiration: Verifies delivery of OWASP headers (`nosniff`, `DENY`, HSTS, CSP), verifies `X-Powered-By` header is stripped, and guarantees subscription expiration is enforced by actual timestamps (`current_period_end < Date.now()`).
+- **Milestone 5 SaaS Administration & Subscription Management Suite** (`backend/tests/subscriptions_admin.test.ts` - 25 tests):
+  - Platform Administration RBAC: Blocks unauthorized access to admin APIs (401/403), allows platform admin to manage shops, tiers, and platform KPI metrics.
+  - Subscription Boundaries: Shop owner plan change requests only record `requested_plan_id` without self-elevation; rejects nonexistent plans (404).
+  - Cross-Shop Isolation: Prevents Shop 1 Owner from accessing Shop 2 subscription details (403).
+  - Quota Enforcement: Atomic staff ceilings (`addShopMemberWithQuota`) and product catalog ceilings (`createProductWithQuota`).
+  - Suspension & Expiration: Suspended and expired shops reject new customer orders (403), existing orders remain accessible, reactivating shop restores order acceptance.
+  - Admin Audit Logs: Administrative mutations generate structured audit log entries.
+- **Milestone 4 Order Lifecycle, Notifications & Timeline Test Suite** (`backend/tests/notifications_lifecycle.test.ts` - 14 tests):
+  - In-app notification creation for customer and shop staff upon order placement.
+  - Granular lifecycle transitions: `Pending` -> `Accepted` -> `Preparing` -> `Ready` -> `Completed`.
+  - Notification unread counters and read status mutation.
+  - Cross-tenant notification isolation (401/404/denied).
+  - Chronological timeline history and cross-tenant view authorization checks.
 - **Milestone 3 Product Catalogue, Inventory & Cart Suite** (`backend/tests/inventory_cart.test.ts` - 15 tests):
   - Product Catalog & Authorization: Public customer listing, staff product creation, customer creation rejection (403), tenant isolation between shop owners, staff delete prevention (owner-only), negative price and stock rejection.
   - Inventory Management & Validation: Excess quantity rejection, invalid quantity validation, atomic stock deduction on order, repeated cancellation/rejection idempotency, concurrent updates safety.
@@ -216,7 +234,21 @@ npm test
 - **Pricing Engine Suite** (`backend/tests/pricing.test.ts` - 6 tests):
   - Document parameter validation (A4/A3, B&W/colour, duplex, binding, lamination).
 
-### Compiling Backend & Frontend
+**Total Verified Test Count: 131 tests passing across 36 test suites (0 failures, 0 skipped).**
+
+### Database Backup & Recovery Commands
+- Take a consistent snapshot backup of database and print documents:
+  ```bash
+  cd backend
+  npm run backup
+  ```
+- Run isolated test recovery verification (verifies SHA-256 and `PRAGMA integrity_check` without touching live database):
+  ```bash
+  cd backend
+  npm run restore:verify
+  ```
+
+### Production Build
 - Backend TypeScript compilation:
   ```bash
   cd backend
@@ -227,6 +259,12 @@ npm test
   cd frontend
   npm run build
   ```
+
+For detailed production setup, process management, reverse proxy configuration, and disaster recovery runbooks, refer to:
+- [DEPLOYMENT.md](file:///c:/Users/Akshaya/Downloads/Qproject%20-%20Copy/DEPLOYMENT.md)
+- [BACKUP_AND_RECOVERY.md](file:///c:/Users/Akshaya/Downloads/Qproject%20-%20Copy/BACKUP_AND_RECOVERY.md)
+- [SECURITY_CHECKLIST.md](file:///c:/Users/Akshaya/Downloads/Qproject%20-%20Copy/SECURITY_CHECKLIST.md)
+
 
 ---
 
