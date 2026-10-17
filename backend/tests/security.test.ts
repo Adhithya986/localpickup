@@ -7,6 +7,7 @@ import { readDB, writeDB } from "../src/database";
 describe("Milestone 1 Security & Authentication Suite", () => {
   let adminToken = "";
   let shopToken = "";
+  let otherShopToken = "";
   let customerToken = "";
   let otherCustomerToken = "";
 
@@ -47,6 +48,19 @@ describe("Milestone 1 Security & Authentication Suite", () => {
       });
     assert.strictEqual(regRes.status, 201, "Customer 2 registration failed");
     otherCustomerToken = regRes.body.token;
+
+    // 5. Register other shopkeeper for cross-shop isolation testing
+    const randShopEmail = `shop2_${Date.now()}@test.com`;
+    const regShopRes = await request(app)
+      .post("/api/auth/register")
+      .send({
+        email: randShopEmail,
+        password: "password123",
+        name: "Shop 2 Owner",
+        role: "SHOP_OWNER",
+      });
+    assert.strictEqual(regShopRes.status, 201, "Shop 2 registration failed");
+    otherShopToken = regShopRes.body.token;
   });
 
   describe("Authentication & Registration Security", () => {
@@ -200,6 +214,21 @@ describe("Milestone 1 Security & Authentication Suite", () => {
       assert.strictEqual(res.status, 200);
     });
 
+    it("should allow platform admin to download the document via /api/documents/:orderId (200)", async () => {
+      const res = await request(app)
+        .get(`/api/documents/${testOrderId}`)
+        .set("Authorization", `Bearer ${adminToken}`);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers["x-content-type-options"], "nosniff");
+    });
+
+    it("should block staff from another shop from downloading document via /api/documents/:orderId (403)", async () => {
+      const res = await request(app)
+        .get(`/api/documents/${testOrderId}`)
+        .set("Authorization", `Bearer ${otherShopToken}`);
+      assert.strictEqual(res.status, 403);
+    });
+
     it("should block unauthenticated access to direct upload path /uploads/:filename (401)", async () => {
       const res = await request(app).get(`/uploads/${testStorageKey}`);
       assert.strictEqual(res.status, 401);
@@ -212,12 +241,44 @@ describe("Milestone 1 Security & Authentication Suite", () => {
       assert.strictEqual(res.status, 403);
     });
 
+    it("should enforce tenant isolation on /uploads/:filename and block staff from another shop (403)", async () => {
+      const res = await request(app)
+        .get(`/uploads/${testStorageKey}`)
+        .set("Authorization", `Bearer ${otherShopToken}`);
+      assert.strictEqual(res.status, 403);
+    });
+
     it("should allow authorized customer to access /uploads/:filename with security headers (200)", async () => {
       const res = await request(app)
         .get(`/uploads/${testStorageKey}`)
         .set("Authorization", `Bearer ${customerToken}`);
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.headers["x-content-type-options"], "nosniff");
+    });
+
+    it("should allow authorized shopkeeper of shop 1 to access /uploads/:filename (200)", async () => {
+      const res = await request(app)
+        .get(`/uploads/${testStorageKey}`)
+        .set("Authorization", `Bearer ${shopToken}`);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers["x-content-type-options"], "nosniff");
+    });
+
+    it("should allow platform admin to access /uploads/:filename (200)", async () => {
+      const res = await request(app)
+        .get(`/uploads/${testStorageKey}`)
+        .set("Authorization", `Bearer ${adminToken}`);
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.headers["x-content-type-options"], "nosniff");
+    });
+
+    it("should block path traversal attempts on /uploads/:filename and not leak server files", async () => {
+      const res = await request(app)
+        .get("/uploads/..%2f..%2fpackage.json")
+        .set("Authorization", `Bearer ${adminToken}`);
+      // Must not return 200 or expose package.json contents
+      assert.notStrictEqual(res.status, 200);
+      assert.strictEqual(res.status, 404);
     });
   });
 

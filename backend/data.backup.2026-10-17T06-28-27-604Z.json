@@ -1,0 +1,728 @@
+{
+  "shops": [
+    {
+      "id": "1",
+      "name": "ABC Digital Prints",
+      "description": "Printing • Photocopy • Binding",
+      "distance": "0.8 km",
+      "price": "From ₹2",
+      "rating": "4.6",
+      "subscriptionStatus": "ACTIVE",
+      "ownerId": "shop-1",
+      "pricingConfig": {
+        "a4BwPrice": 2,
+        "a4ColourPrice": 5,
+        "a3BwPrice": 4,
+        "a3ColourPrice": 7,
+        "doubleSideDiscount": 1,
+        "bindingPrice": 20,
+        "laminationPrice": 10
+      }
+    },
+    {
+      "id": "2",
+      "name": "Quick Print Center",
+      "description": "Printing • Binding • Lamination",
+      "distance": "1.2 km",
+      "price": "From ₹3",
+      "rating": "4.4",
+      "subscriptionStatus": "ACTIVE",
+      "ownerId": "shop-1",
+      "pricingConfig": {
+        "a4BwPrice": 2,
+        "a4ColourPrice": 5,
+        "a3BwPrice": 4,
+        "a3ColourPrice": 7,
+        "doubleSideDiscount": 1,
+        "bindingPrice": 20,
+        "laminationPrice": 10
+      }
+    },
+    {
+      "id": "3",
+      "name": "City Copy & Print",
+      "description": "Printing • Documents • Scanning",
+      "distance": "1.8 km",
+      "price": "From ₹2",
+      "rating": "4.5",
+      "subscriptionStatus": "ACTIVE",
+      "ownerId": "shop-1",
+      "pricingConfig": {
+        "a4BwPrice": 2,
+        "a4ColourPrice": 5,
+        "a3BwPrice": 4,
+        "a3ColourPrice": 7,
+        "doubleSideDiscount": 1,
+        "bindingPrice": 20,
+        "laminationPrice": 10
+      }
+    }
+  ],
+  "orders": [
+    {
+      "id": "LP-664653",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "fileName": "e1.png",
+      "filePath": "/uploads/1790444664624-e1.png",
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": true,
+      "lamination": false,
+      "total": 22,
+      "pickupTime": "8:00 PM",
+      "status": "Completed",
+      "createdAt": "2026-09-26T17:44:24.653Z"
+    },
+    {
+      "id": "LP-66A2DB0B",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "assignment.pdf",
+      "storageKey": "822dd64d-05a7-4e33-8e21-b1f7bf7f89ed.pdf",
+      "filePath": "/api/documents/LP-66A2DB0B",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 30,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 10,
+      "binding": true,
+      "lamination": false,
+      "total": 40,
+      "pickupTime": "5:00 PM",
+      "pickupToken": "5348E77F04E7",
+      "pickupTokenHash": "eed74712cda57c518ba7e8ea9e1903f2630b10f57ac9c136f99e4c70ccd1a4ec",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:38:42.441Z",
+      "updatedAt": "2026-10-16T14:38:42.441Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:38:42.441Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-B209E6EA",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "confidential.pdf",
+      "storageKey": "c1c3a7d6-18de-4cf5-be85-9bc348929d4a.pdf",
+      "filePath": "/api/documents/LP-B209E6EA",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 23,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "6:00 PM",
+      "pickupToken": "6C02A990896B",
+      "pickupTokenHash": "03bac8123969cba823f8d99ec04e5e510d6b6a632459c5d1a487890cee107dea",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:38:42.466Z",
+      "updatedAt": "2026-10-16T14:38:42.466Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:38:42.466Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-2C4C1EA4",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "test.pdf",
+      "storageKey": "3aca4883-5c01-48a4-bd45-badeba4b7536.pdf",
+      "filePath": "/api/documents/LP-2C4C1EA4",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 16,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "7:00 PM",
+      "pickupToken": "412746104438",
+      "pickupTokenHash": "44631c1545d7077da84e7c48712f65526570bf124b371d1b210df649dfa0be93",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:38:42.501Z",
+      "updatedAt": "2026-10-16T14:38:42.501Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:38:42.501Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-E7A18271",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "assignment.pdf",
+      "storageKey": "31062e5e-5945-4bde-989f-e3a7ae208e1e.pdf",
+      "filePath": "/api/documents/LP-E7A18271",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 30,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 10,
+      "binding": true,
+      "lamination": false,
+      "total": 40,
+      "pickupTime": "5:00 PM",
+      "pickupToken": "179CE9FDD50D",
+      "pickupTokenHash": "9c407ced9d5bd4d540bc79ff8fd16ac0ee64614032c8ee11bfb05b46f76f6d05",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:39:52.761Z",
+      "updatedAt": "2026-10-16T14:39:52.761Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:39:52.761Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-13646AF8",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "confidential.pdf",
+      "storageKey": "1d78dc9f-0df2-49fc-83a2-d2b4de3ebae0.pdf",
+      "filePath": "/api/documents/LP-13646AF8",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 23,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "6:00 PM",
+      "pickupToken": "534419C6C9A8",
+      "pickupTokenHash": "dc13622b6bbc3e324dc1d6d454f9bdb73f2d5cb58f4114815254fe5f3369942f",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:39:52.784Z",
+      "updatedAt": "2026-10-16T14:39:52.784Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:39:52.784Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-2D541F5D",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "test.pdf",
+      "storageKey": "a24794f8-c886-4703-924d-a6ab1f66ac1d.pdf",
+      "filePath": "/api/documents/LP-2D541F5D",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 16,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "7:00 PM",
+      "pickupToken": "A69230543CAA",
+      "pickupTokenHash": "ed7e012726072528602c749b81664b13a2965254d1d62707aca196edcd47f691",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:39:52.818Z",
+      "updatedAt": "2026-10-16T14:39:52.818Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:39:52.818Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-8B88EE67",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "assignment.pdf",
+      "storageKey": "242c1b38-4855-4c3c-a301-231d594e562d.pdf",
+      "filePath": "/api/documents/LP-8B88EE67",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 30,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 10,
+      "binding": true,
+      "lamination": false,
+      "total": 40,
+      "pickupTime": "5:00 PM",
+      "pickupToken": "C1948A306B34",
+      "pickupTokenHash": "abf6a6d17933a6a6e8e447d802a02960519cd2675709e03af0941fa45a0acf89",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:40:17.903Z",
+      "updatedAt": "2026-10-16T14:40:17.903Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:40:17.903Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-F9CF0F2A",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "confidential.pdf",
+      "storageKey": "2e8e7488-f09d-4608-bd1a-a583993171fa.pdf",
+      "filePath": "/api/documents/LP-F9CF0F2A",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 23,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "6:00 PM",
+      "pickupToken": "E9EC648798EB",
+      "pickupTokenHash": "9b5b279175091c54a7a2041dfbe8f38804ec86365bb215cac310ffd4d3e2de45",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:40:17.914Z",
+      "updatedAt": "2026-10-16T14:40:17.914Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:40:17.914Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-02E97D0B",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "test.pdf",
+      "storageKey": "ad804da5-0fdd-42e5-96e5-813ec905487f.pdf",
+      "filePath": "/api/documents/LP-02E97D0B",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 16,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "7:00 PM",
+      "pickupToken": "F1F9AD33664A",
+      "pickupTokenHash": "6581f501f0c8a4805dec2f3b9ff194e4d798dabf003cc7ef8d8385ac2c61d74b",
+      "status": "Completed",
+      "createdAt": "2026-10-16T14:40:17.958Z",
+      "updatedAt": "2026-10-16T14:40:17.996Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:40:17.958Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        },
+        {
+          "status": "Ready",
+          "changedAt": "2026-10-16T14:40:17.979Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Status updated to Ready"
+        },
+        {
+          "status": "Completed",
+          "changedAt": "2026-10-16T14:40:17.996Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Pickup code verified at shop counter. Order handed over."
+        }
+      ],
+      "verifiedBy": "ABC Prints Owner (shop-1)",
+      "verifiedAt": "2026-10-16T14:40:17.996Z"
+    },
+    {
+      "id": "LP-A3092AEA",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "assignment.pdf",
+      "storageKey": "646d56ad-0d03-40de-827f-7a6a58f2c263.pdf",
+      "filePath": "/api/documents/LP-A3092AEA",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 30,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 10,
+      "binding": true,
+      "lamination": false,
+      "total": 40,
+      "pickupTime": "5:00 PM",
+      "pickupToken": "02B7A9153A82",
+      "pickupTokenHash": "5a00fd61815fcbbee4ea541ce3c06885a8f12bea437f7056fd3932ce276e4902",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:44:35.178Z",
+      "updatedAt": "2026-10-16T14:44:35.178Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:44:35.178Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-E222495C",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "confidential.pdf",
+      "storageKey": "ee767f3a-3d96-4223-8960-68f80f77e408.pdf",
+      "filePath": "/api/documents/LP-E222495C",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 23,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "6:00 PM",
+      "pickupToken": "52FEFB819D79",
+      "pickupTokenHash": "cb2cef83dbcd812e34622fe3b116c5be82e6e5860aefafd3041ef5720a49c5fa",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:44:35.191Z",
+      "updatedAt": "2026-10-16T14:44:35.191Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:44:35.191Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-7D8B738F",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "test.pdf",
+      "storageKey": "afb7e376-fa2b-498e-ab68-abdc448b715a.pdf",
+      "filePath": "/api/documents/LP-7D8B738F",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 16,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "7:00 PM",
+      "pickupToken": "B5359C2929B3",
+      "pickupTokenHash": "3a90bcb79fa0919ccb6d43044ba79ae8d8f724e9afe5b7e886ed45bf6ef32e6b",
+      "status": "Completed",
+      "createdAt": "2026-10-16T14:44:35.231Z",
+      "updatedAt": "2026-10-16T14:44:35.264Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:44:35.231Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        },
+        {
+          "status": "Ready",
+          "changedAt": "2026-10-16T14:44:35.250Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Status updated to Ready"
+        },
+        {
+          "status": "Completed",
+          "changedAt": "2026-10-16T14:44:35.264Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Pickup code verified at shop counter. Order handed over."
+        }
+      ],
+      "verifiedBy": "ABC Prints Owner (shop-1)",
+      "verifiedAt": "2026-10-16T14:44:35.264Z"
+    },
+    {
+      "id": "LP-6AA16489",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "assignment.pdf",
+      "storageKey": "bdac00a4-be33-4ec7-80a4-10e76a5cd510.pdf",
+      "filePath": "/api/documents/LP-6AA16489",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 30,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 10,
+      "binding": true,
+      "lamination": false,
+      "total": 40,
+      "pickupTime": "5:00 PM",
+      "pickupToken": "1374F9A8DB24",
+      "pickupTokenHash": "9fa5ea16d9cb241ba767905b511c15645c016ecec0804b39fde618ec245cdfdc",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:45:37.423Z",
+      "updatedAt": "2026-10-16T14:45:37.423Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:45:37.423Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-2ED39AC2",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "confidential.pdf",
+      "storageKey": "e4f98dbf-969b-449c-857b-824fa8694e38.pdf",
+      "filePath": "/api/documents/LP-2ED39AC2",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 23,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "6:00 PM",
+      "pickupToken": "5427AE8AB2AC",
+      "pickupTokenHash": "ba6ef7f012f136938fed71b21ab4ddafeb2a255e90b023b738860e2375d19404",
+      "status": "Pending",
+      "createdAt": "2026-10-16T14:45:37.446Z",
+      "updatedAt": "2026-10-16T14:45:37.446Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:45:37.446Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        }
+      ]
+    },
+    {
+      "id": "LP-9000E1F3",
+      "shopId": "1",
+      "shopName": "ABC Digital Prints",
+      "customerId": "cust-1",
+      "customerEmail": "customer@gmail.com",
+      "fileName": "test.pdf",
+      "storageKey": "0c05600f-3dcb-4fc8-901b-fb9ea075f9b0.pdf",
+      "filePath": "/api/documents/LP-9000E1F3",
+      "fileMime": "application/pdf",
+      "fileSizeBytes": 16,
+      "paper": "A4",
+      "colour": "bw",
+      "sides": "single",
+      "copies": 1,
+      "binding": false,
+      "lamination": false,
+      "total": 2,
+      "pickupTime": "7:00 PM",
+      "pickupToken": "E9289CD1C53E",
+      "pickupTokenHash": "a7cfe84fc584ace09db903307968e7a50dd048e6d2e6bc1c271375704844740e",
+      "status": "Completed",
+      "createdAt": "2026-10-16T14:45:37.478Z",
+      "updatedAt": "2026-10-16T14:45:37.513Z",
+      "statusHistory": [
+        {
+          "status": "Pending",
+          "changedAt": "2026-10-16T14:45:37.478Z",
+          "changedBy": "Test Customer (CUSTOMER)",
+          "note": "Order placed by customer"
+        },
+        {
+          "status": "Ready",
+          "changedAt": "2026-10-16T14:45:37.499Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Status updated to Ready"
+        },
+        {
+          "status": "Completed",
+          "changedAt": "2026-10-16T14:45:37.513Z",
+          "changedBy": "ABC Prints Owner (SHOPKEEPER)",
+          "note": "Pickup code verified at shop counter. Order handed over."
+        }
+      ],
+      "verifiedBy": "ABC Prints Owner (shop-1)",
+      "verifiedAt": "2026-10-16T14:45:37.513Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "admin-1",
+      "email": "admin@localpickup.com",
+      "password": "$2b$10$6QA5O4.7EtDqI8zVyxnLqeNP4yzsnYnTTGIajygmLwNvXEOBkdSu2",
+      "name": "System Admin",
+      "role": "ADMIN"
+    },
+    {
+      "id": "shop-1",
+      "email": "shop1@abc.com",
+      "password": "$2b$10$7zeODZn6piR8qUCw5/3yPuX36ZqkmvXsnqQl5adT4EsGMMW3fYjwa",
+      "name": "ABC Prints Owner",
+      "role": "SHOPKEEPER",
+      "shopId": "1"
+    },
+    {
+      "id": "cust-1",
+      "email": "customer@gmail.com",
+      "password": "$2b$10$YScfJpZUUkxO4zJGKuXaQ.61DDTcLvf.xmnW2Yn7kkEoHfID2aLWi",
+      "name": "Test Customer",
+      "role": "CUSTOMER"
+    },
+    {
+      "id": "usr-1792159403743",
+      "email": "shop1@gmail.com",
+      "password": "$2b$10$ib73ZHUXf11TPKaQCsAE4.f848llhvldfzz7rx3A.zCbEUFdubgly",
+      "name": "shop1",
+      "role": "SHOPKEEPER"
+    },
+    {
+      "id": "usr-1792161522250",
+      "email": "isolated_1792161522182@test.com",
+      "password": "$2b$10$sQpTljPXVjJ77iweb6Ln8.ZK/QeLu/2vyGYaUNAd7spqcLHusKxeW",
+      "name": "Isolated Customer",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:38:42.250Z"
+    },
+    {
+      "id": "usr-1792161522398",
+      "email": "hacker_1792161522332@test.com",
+      "password": "$2b$10$2xjqv2CcrH78HbAQPQg5P.y3GH7gaHQo8vXO91QaGy2NZilWUf7ji",
+      "name": "Hacker Attempt",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:38:42.398Z"
+    },
+    {
+      "id": "usr-1792161592567",
+      "email": "isolated_1792161592496@test.com",
+      "password": "$2b$10$NFU6rxNecmtULuX0QmY6fuSCwiNq0eQCNajC1It3ceAlUkx0T3wyC",
+      "name": "Isolated Customer",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:39:52.567Z"
+    },
+    {
+      "id": "usr-1792161592720",
+      "email": "hacker_1792161592650@test.com",
+      "password": "$2b$10$2Zp0kz.DFbV9bcEV6i8ufukFwa02jF3VHqD10aHmQRM3Y1Jy8xXjq",
+      "name": "Hacker Attempt",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:39:52.720Z"
+    },
+    {
+      "id": "usr-1792161617711",
+      "email": "isolated_1792161617642@test.com",
+      "password": "$2b$10$mMlLtBdloxa3xOVMFPJSjO.lWUMRcN1M5jJhWpzgbIgVm7XWKL0wa",
+      "name": "Isolated Customer",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:40:17.711Z"
+    },
+    {
+      "id": "usr-1792161617864",
+      "email": "hacker_1792161617795@test.com",
+      "password": "$2b$10$Uih2eprSg9HktNYuy/EPcO1bTWad9Q0S2n9XH/6utZTd3FBmmMWha",
+      "name": "Hacker Attempt",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:40:17.864Z"
+    },
+    {
+      "id": "usr-1792161874942",
+      "email": "isolated_1792161874871@test.com",
+      "password": "$2b$10$TMXJD0Dzkz9cVf04q0K0WeHLbQCUggT9TENUkz2SI6IIDvMMiKTny",
+      "name": "Isolated Customer",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:44:34.942Z"
+    },
+    {
+      "id": "usr-1792161875111",
+      "email": "hacker_1792161875027@test.com",
+      "password": "$2b$10$YxXSrmN/HScPhwPRvHQf1OM5nGW3sH1CmaIGIG.MIhi.2VMxe5cv6",
+      "name": "Hacker Attempt",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:44:35.112Z"
+    },
+    {
+      "id": "usr-1792161937229",
+      "email": "isolated_1792161937160@test.com",
+      "password": "$2b$10$bodPjbjb7o2d3IpQdJnkt.gniuEs.Tx7j6SEQNRLaqdgqaJ55NP7y",
+      "name": "Isolated Customer",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:45:37.229Z"
+    },
+    {
+      "id": "usr-1792161937381",
+      "email": "hacker_1792161937310@test.com",
+      "password": "$2b$10$UNSsICC24/n0LCyrmjUBqu6aoO3xxoi958rBk03/gPkCCq5R9VUKu",
+      "name": "Hacker Attempt",
+      "role": "CUSTOMER",
+      "createdAt": "2026-10-16T14:45:37.381Z"
+    }
+  ]
+}

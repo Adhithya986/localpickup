@@ -94,15 +94,6 @@ function Login() {
               </button>
             </p>
           </form>
-          
-          {isLogin && (
-            <div style={{ marginTop: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '4px', fontSize: '0.8rem' }}>
-              <strong>Demo Accounts:</strong><br/>
-              Admin: admin@localpickup.com / password123<br/>
-              Shop: shop1@abc.com / password123<br/>
-              Cust: customer@gmail.com / password123
-            </div>
-          )}
         </div>
       </main>
     </div>

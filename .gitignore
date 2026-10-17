@@ -4,3 +4,7 @@ dist/
 backend/uploads/
 backend/backups/
 backend/data.json
+tools/
+*.db
+*.db-shm
+*.db-wal

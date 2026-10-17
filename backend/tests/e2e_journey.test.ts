@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { app } from "../src/app";
 import { repository, readDB } from "../src/database";
+import { config } from "../src/config";
 
 describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite", () => {
   const uniqueId = Date.now();
@@ -31,8 +32,8 @@ describe("Milestone 6 End-to-End Customer Journey & Production Hardening Suite",
     process.env.NODE_ENV = "test";
     await readDB();
 
-    // 1. Create a dummy test file for document upload
-    const uploadsDir = path.resolve(__dirname, "../uploads");
+    // 1. Create a dummy test file for document upload in isolated test uploads dir
+    const uploadsDir = config.uploadDir;
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }

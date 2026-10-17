@@ -36,24 +36,26 @@ Copy `.env.example` to `backend/.env` on the production server. **Never commit `
 ```env
 # Server Runtime
 PORT=5000
-NODE_ENV=production
+NODE_ENV=staging # or production for live
 
 # Authentication & Security
-# Generate using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-JWT_SECRET=b7f8c92a1d4e6f8a9b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a
+# Generate a cryptographically random secret on the target server using:
+# node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=generate_using_command_above_at_least_32_characters_long
 JWT_EXPIRES_IN=7d
 
-# CORS Allowed Origin
-CORS_ORIGIN=https://localpickup.yourdomain.com
+# CORS Allowed Origin (Staging or Production Frontend URL)
+CORS_ORIGIN=https://staging.localpickup.yourdomain.com
 
-# Document Storage & SQLite Paths
-UPLOAD_DIR=/var/lib/localpickup/uploads
-DB_PATH=/var/lib/localpickup/data/localpickup.db
+# Document Storage & SQLite Paths (Ensure separate paths for staging vs production)
+UPLOAD_DIR=/var/lib/localpickup/staging_uploads
+DB_PATH=/var/lib/localpickup/data/localpickup_staging.db
+DATABASE_PATH=/var/lib/localpickup/data/localpickup_staging.db
 ```
 
-### Production Security Validation:
-1. `JWT_SECRET` must be at least 32 characters long. In `NODE_ENV=production`, the application refuses to start if `JWT_SECRET` is too short or contains placeholder keywords (`default`, `replace_with`).
-2. `CORS_ORIGIN` strictly restricts cross-origin browser requests to the designated frontend domain.
+### Environment Security Validation:
+1. `JWT_SECRET` must be at least 32 characters long. In both `NODE_ENV=production` and `NODE_ENV=staging`, the application refuses to start if `JWT_SECRET` is missing, too short, or contains placeholder keywords (`default`, `replace_with`).
+2. `CORS_ORIGIN` strictly restricts cross-origin browser requests to the designated domain in both staging and production.
 3. Express fingerprinting (`X-Powered-By`) is automatically stripped, and OWASP security headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`, `CSP`) are injected by default.
 
 ---

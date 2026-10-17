@@ -5,6 +5,13 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: true,
+    proxy: {
+      '/api': 'http://localhost:5000'
+    }
+  },
+  preview: {
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:5000'
     }

@@ -36,7 +36,7 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server) or configured origin
       if (!origin || origin.startsWith("http://localhost:") || origin === config.corsOrigin) {
         callback(null, true);
-      } else if (config.nodeEnv === "production") {
+      } else if (config.nodeEnv === "production" || config.nodeEnv === "staging") {
         callback(new Error(`CORS policy violation: origin '${origin}' not permitted`));
       } else {
         callback(null, true);

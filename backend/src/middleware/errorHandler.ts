@@ -24,11 +24,13 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
   const status = err.status || err.statusCode || 500;
   const isClientError = status >= 400 && status < 500;
 
-  if (config.nodeEnv !== "production" && !isClientError) {
+  const isDeployed = config.nodeEnv === "production" || config.nodeEnv === "staging";
+
+  if (!isDeployed && !isClientError) {
     console.error("Unhandled error:", err);
   }
 
-  const rawMessage = isClientError || config.nodeEnv !== "production"
+  const rawMessage = isClientError || !isDeployed
     ? err.message || "An error occurred"
     : "Internal Server Error";
 
@@ -36,6 +38,6 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
 
   res.status(status).json({
     error: message,
-    ...(config.nodeEnv !== "production" && err.stack ? { stack: err.stack } : {}),
+    ...(!isDeployed && err.stack ? { stack: err.stack } : {}),
   });
 }
