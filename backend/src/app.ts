@@ -30,17 +30,41 @@ initDatabaseSync();
 app.use(securityHeaders);
 
 // Security: configure CORS
+const allowedOrigins = (config.corsOrigin || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server) or configured origin
-      if (!origin || origin.startsWith("http://localhost:") || origin === config.corsOrigin) {
-        callback(null, true);
-      } else if (config.nodeEnv === "production" || config.nodeEnv === "staging") {
-        callback(new Error(`CORS policy violation: origin '${origin}' not permitted`));
-      } else {
-        callback(null, true);
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Allow localhost in development / preview
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return callback(null, true);
       }
+
+      // Allow wildcard or all
+      if (config.corsOrigin === "*" || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      // Allow configured origins, Vercel deployments, and Cloudflare tunnels
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".trycloudflare.com")
+      ) {
+        return callback(null, true);
+      }
+
+      if (config.nodeEnv === "production" || config.nodeEnv === "staging") {
+        return callback(new Error(`CORS policy violation: origin '${origin}' not permitted`));
+      }
+
+      callback(null, true);
     },
     credentials: true,
   })

@@ -46,8 +46,9 @@ function Login() {
       if (userRole === "ADMIN" || userRole === "PLATFORM_ADMIN") navigate("/admin");
       else if (userRole === "SHOPKEEPER" || userRole === "SHOP_OWNER") navigate("/dashboard");
       else navigate("/");
-    } catch (err) {
-      setError("Network error occurred");
+    } catch (err: any) {
+      console.error("Authentication request failed:", err);
+      setError("Network error: Could not reach the backend server. If the server is waking up, please wait 20-30 seconds and try again.");
     }
   };
 
